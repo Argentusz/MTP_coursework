@@ -6,6 +6,7 @@ import (
 	"github.com/Argentusz/MTP_coursework/pkg/types"
 	"strconv"
 	"strings"
+	"unicode"
 )
 
 type ParamType byte
@@ -14,14 +15,16 @@ const (
 	RegType ParamType = iota
 	FlagType
 	IntType
-	FloatType
+	ValueSourceType      // rx OR 10 OR [rx]
+	ValueDestinationType // rx OR [rx]
 )
 
 const (
-	RegTypeSize   = 6
-	FlagTypeSize  = 3
-	IntTypeSize   = 16
-	FloatTypeSize = 16
+	RegTypeSize              = 6
+	FlagTypeSize             = 3
+	IntTypeSize              = 16
+	ValueSourceTypeSize      = 18
+	ValueDestinationTypeSize = 7
 )
 
 func SizeOfParamType(pt ParamType) int {
@@ -32,8 +35,10 @@ func SizeOfParamType(pt ParamType) int {
 		return FlagTypeSize
 	case IntType:
 		return IntTypeSize
-	case FloatType:
-		return FloatTypeSize
+	case ValueSourceType:
+		return ValueSourceTypeSize
+	case ValueDestinationType:
+		return ValueDestinationTypeSize
 	default:
 		return 0
 	}
@@ -45,9 +50,35 @@ type commandEntry struct {
 }
 
 var commandsMap = map[string]commandEntry{
-	"skp": {Code: 0b00000000, Params: []ParamType{}},
-	"inc": {Code: 0b00000001, Params: []ParamType{RegType}},
-	"ass": {Code: 0b00000010, Params: []ParamType{RegType, IntType}},
+	"skip": {Code: types.C_SKIP, Params: []ParamType{}},
+	"mov":  {Code: types.C_MOV, Params: []ParamType{ValueDestinationType, ValueSourceType}}, // dest=src
+	"add":  {Code: types.C_ADD, Params: []ParamType{RegType, ValueSourceType}},              // dest+=src
+	"adc":  {Code: types.C_ADC, Params: []ParamType{RegType, ValueSourceType}},              // dest+=src+fc
+	"sub":  {Code: types.C_SUB, Params: []ParamType{RegType, ValueSourceType}},              // dest-=src
+	"sbb":  {Code: types.C_SBB, Params: []ParamType{RegType, ValueSourceType}},              // dest-=(src+fc)
+	"mul":  {Code: types.C_MUL, Params: []ParamType{RegType, ValueSourceType}},              // dest*=src
+	"imul": {Code: types.C_IMUL, Params: []ParamType{RegType, ValueSourceType}},             // dest*=src (signed)
+	"div":  {Code: types.C_DIV, Params: []ParamType{RegType, ValueSourceType}},              // dest/=src
+	"shl":  {Code: types.C_SHL, Params: []ParamType{RegType, IntType}},                      // r<<=imm
+	"shr":  {Code: types.C_SHR, Params: []ParamType{RegType, IntType}},                      // r>>=imm
+	"sar":  {Code: types.C_SAR, Params: []ParamType{RegType, IntType}},                      // r<<=imm (arithmetic)
+	"and":  {Code: types.C_AND, Params: []ParamType{RegType, RegType}},                      // ra&=rb
+	"or":   {Code: types.C_OR, Params: []ParamType{RegType, RegType}},                       // ra|=rb
+	"xor":  {Code: types.C_XOR, Params: []ParamType{RegType, RegType}},                      // ra^=rb
+	"not":  {Code: types.C_NOT, Params: []ParamType{RegType}},                               // ra=~ra
+	/* TODO */
+	"jmp":  {Code: types.C_JMP, Params: []ParamType{}},
+	"call": {Code: types.C_CALL, Params: []ParamType{}},
+	"ret":  {Code: types.C_RET, Params: []ParamType{}},
+	"halt": {Code: types.C_HALT, Params: []ParamType{}},
+	"ei":   {Code: types.C_EI, Params: []ParamType{}},
+	"di":   {Code: types.C_DI, Params: []ParamType{}},
+	/*     */
+	"int":  {Code: types.C_INT, Params: []ParamType{IntType}},
+	"addf": {Code: types.C_ADDF, Params: []ParamType{RegType, ValueSourceType}},
+	"subf": {Code: types.C_SUBF, Params: []ParamType{RegType, ValueSourceType}},
+	"mulf": {Code: types.C_MULF, Params: []ParamType{RegType, ValueSourceType}},
+	"divf": {Code: types.C_DIVF, Params: []ParamType{RegType, ValueSourceType}},
 }
 
 var flagMap = map[string]types.Word32{
@@ -69,24 +100,82 @@ func init() {
 	}
 }
 
+func convertRegParam(param string) (types.Word32, error) {
+	rx, found := regMap[param]
+	if !found {
+		return 0b0, errors.New(fmt.Sprintf("register \"%s\" not found or inaccessible", param))
+	}
+
+	return rx, nil
+}
+
+func convertFlagParam(param string) (types.Word32, error) {
+	fx, found := flagMap[param]
+	if !found {
+		return 0b0, errors.New(fmt.Sprintf("flag \"%s\" not found or inaccessible", param))
+	}
+
+	return fx, nil
+}
+
+func convertIntParam(param string) (types.Word32, error) {
+	num, err := strconv.ParseInt(param, 0, IntTypeSize+1)
+	if err != nil {
+		return 0b0, err
+	}
+
+	return types.Word32(num), nil
+}
+
 func convertParam(param string, paramType ParamType) (types.Word32, error) {
 	switch paramType {
 	case RegType:
-		rx, found := regMap[param]
-		if !found {
-			return 0b0, errors.New(fmt.Sprintf("register \"%s\" not found or inaccessible", param))
-		}
+		return convertRegParam(param)
 
-		return rx, nil
+	case FlagType:
+		return convertFlagParam(param)
+
 	case IntType:
-		num, err := strconv.ParseInt(param, 0, IntTypeSize)
-		if err != nil {
-			return 0b0, err
+		return convertIntParam(param)
+
+	case ValueSourceType:
+		var paramRunes = []rune(param)
+		switch {
+		case paramRunes[0] == 'r':
+			return convertRegParam(param)
+
+		case unicode.IsNumber(paramRunes[0]):
+			num, err := convertIntParam(param)
+			num |= 0b01 << IntTypeSize
+			return num, err
+
+		case len(paramRunes) > 1 && paramRunes[0] == '[' && paramRunes[len(paramRunes)-1] == ']':
+			sParam := string(paramRunes[1 : len(paramRunes)-1])
+			num, err := convertRegParam(sParam)
+			num |= 0b10 << IntTypeSize
+			return num, err
+
+		default:
+			return 0b0, errors.New(fmt.Sprintf("failed to parse param %s into ValueSourceType", param))
 		}
 
-		return types.Word32(num), nil
+	case ValueDestinationType:
+		var paramRunes = []rune(param)
+		switch {
+		case paramRunes[0] == 'r':
+			return convertRegParam(param)
+
+		case len(paramRunes) > 1 && paramRunes[0] == '[' && paramRunes[len(paramRunes)-1] == ']':
+			sParam := string(paramRunes[1 : len(paramRunes)-1])
+			num, err := convertRegParam(sParam)
+			num |= 0b1 << RegTypeSize
+			return num, err
+
+		default:
+			return 0b0, errors.New(fmt.Sprintf("failed to parse param %s into ValueDestinationType", param))
+		}
 	}
-	return 0b0, errors.New(fmt.Sprintf("unsupported parameter type with code %d", paramType))
+	return 0b0, errors.New(fmt.Sprintf("unsupported parameter %s with code %d", param, paramType))
 }
 
 func Convert(instr string) (types.Word32, error) {
@@ -102,7 +191,7 @@ func Convert(instr string) (types.Word32, error) {
 
 	var cmd types.Word32
 	cmd = entry.Code
-	var shift = 8
+	var shift = 5
 	for i := 0; i < len(entry.Params); i++ {
 		param, err := convertParam(command[i+1], entry.Params[i])
 		if err != nil {

@@ -17,10 +17,11 @@ func check(line string) {
 
 func main() {
 	var lines = []string{
-		"skp", "inc r1", "ass r2 2",
-		"skp", "inc r63", "ass r3 0b101",
-		"skp 1", "inc r65", "ass r4 0b11111111111111111111111111111111111",
-		"ass fo 1", "inc r1 r2", "ass", "inc r64",
+		"mov r63 0xFF",
+		"mov r63 r1",
+		"mov [r63] r30",
+		"mov r62 [r63]",
+		"mov r62 0xFFFF",
 	}
 	for i := 0; i < len(lines); i++ {
 		check(lines[i])
