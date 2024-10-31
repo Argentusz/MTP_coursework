@@ -1,7 +1,10 @@
-package types
+package consts
 
+import "github.com/Argentusz/MTP_coursework/pkg/types"
+
+// Instruction codes
 const (
-	C_SKIP Word32 = iota
+	C_SKIP types.Word32 = iota
 	C_MOV
 	C_ADD
 	C_ADC
