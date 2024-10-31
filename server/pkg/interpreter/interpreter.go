@@ -6,7 +6,6 @@ import (
 	"github.com/Argentusz/MTP_coursework/pkg/types"
 	"strconv"
 	"strings"
-	"unicode"
 )
 
 type ParamType byte
@@ -15,14 +14,16 @@ const (
 	RegType ParamType = iota
 	FlagType
 	IntType
-	ValueSourceType      // rx OR 10 OR [rx]
-	ValueDestinationType // rx OR [rx]
+	AddressType          // [rx]
+	ValueSourceType      // RegType OR IntType OR AddressType
+	ValueDestinationType // RegType OR AddressType
 )
 
 const (
 	RegTypeSize              = 6
 	FlagTypeSize             = 3
 	IntTypeSize              = 16
+	AddressTypeSize          = 6
 	ValueSourceTypeSize      = 18
 	ValueDestinationTypeSize = 7
 )
@@ -35,6 +36,8 @@ func SizeOfParamType(pt ParamType) int {
 		return FlagTypeSize
 	case IntType:
 		return IntTypeSize
+	case AddressType:
+		return AddressTypeSize
 	case ValueSourceType:
 		return ValueSourceTypeSize
 	case ValueDestinationType:
@@ -42,6 +45,24 @@ func SizeOfParamType(pt ParamType) int {
 	default:
 		return 0
 	}
+}
+
+func isNumType(param string) bool {
+	_, err := strconv.ParseInt(param, 0, IntTypeSize+1)
+	return err == nil
+}
+
+func isRegisterType(param string) bool {
+	_, found := regMap[param]
+	return found
+}
+
+func isAddressType(param string) bool {
+	var runes = []rune(param)
+	return len(param) > 1 &&
+		runes[0] == '[' &&
+		runes[len(runes)-1] == ']' &&
+		isRegisterType(strings.Trim(param, "[]"))
 }
 
 type commandEntry struct {
@@ -66,8 +87,8 @@ var commandsMap = map[string]commandEntry{
 	"or":   {Code: types.C_OR, Params: []ParamType{RegType, RegType}},                       // ra|=rb
 	"xor":  {Code: types.C_XOR, Params: []ParamType{RegType, RegType}},                      // ra^=rb
 	"not":  {Code: types.C_NOT, Params: []ParamType{RegType}},                               // ra=~ra
+	"jmp":  {Code: types.C_JMP, Params: []ParamType{AddressType}},
 	/* TODO */
-	"jmp":  {Code: types.C_JMP, Params: []ParamType{}},
 	"call": {Code: types.C_CALL, Params: []ParamType{}},
 	"ret":  {Code: types.C_RET, Params: []ParamType{}},
 	"halt": {Code: types.C_HALT, Params: []ParamType{}},
@@ -127,6 +148,27 @@ func convertIntParam(param string) (types.Word32, error) {
 	return types.Word32(num), nil
 }
 
+func convertAddressParam(param string) (types.Word32, error) {
+	return convertRegParam(strings.Trim(param, "[]"))
+}
+
+func convertValueSourceType(param string) (types.Word32, error) {
+	switch {
+	case isRegisterType(param):
+		return convertRegParam(param)
+	case isNumType(param):
+		num, err := convertIntParam(param)
+		num |= 0b01 << IntTypeSize
+		return num, err
+	case isAddressType(param):
+		num, err := convertAddressParam(param)
+		num |= 0b10 << IntTypeSize
+		return num, err
+	default:
+		return 0b0, errors.New(fmt.Sprintf("could not convert %s to ValueSourceType", param))
+	}
+}
+
 func convertParam(param string, paramType ParamType) (types.Word32, error) {
 	switch paramType {
 	case RegType:
@@ -139,25 +181,7 @@ func convertParam(param string, paramType ParamType) (types.Word32, error) {
 		return convertIntParam(param)
 
 	case ValueSourceType:
-		var paramRunes = []rune(param)
-		switch {
-		case paramRunes[0] == 'r':
-			return convertRegParam(param)
-
-		case unicode.IsNumber(paramRunes[0]):
-			num, err := convertIntParam(param)
-			num |= 0b01 << IntTypeSize
-			return num, err
-
-		case len(paramRunes) > 1 && paramRunes[0] == '[' && paramRunes[len(paramRunes)-1] == ']':
-			sParam := string(paramRunes[1 : len(paramRunes)-1])
-			num, err := convertRegParam(sParam)
-			num |= 0b10 << IntTypeSize
-			return num, err
-
-		default:
-			return 0b0, errors.New(fmt.Sprintf("failed to parse param %s into ValueSourceType", param))
-		}
+		return convertValueSourceType(param)
 
 	case ValueDestinationType:
 		var paramRunes = []rune(param)
