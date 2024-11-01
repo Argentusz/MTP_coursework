@@ -9,47 +9,8 @@ import (
 	"strings"
 )
 
-type ParamType byte
-
-const (
-	RegType ParamType = iota
-	FlagType
-	IntType
-	AddressType          // [rx]
-	ValueSourceType      // RegType OR IntType OR AddressType
-	ValueDestinationType // RegType OR AddressType
-)
-
-const (
-	RegTypeSize              = 6
-	FlagTypeSize             = 3
-	IntTypeSize              = 16
-	AddressTypeSize          = 6
-	ValueSourceTypeSize      = 18
-	ValueDestinationTypeSize = 7
-)
-
-func SizeOfParamType(pt ParamType) int {
-	switch pt {
-	case RegType:
-		return RegTypeSize
-	case FlagType:
-		return FlagTypeSize
-	case IntType:
-		return IntTypeSize
-	case AddressType:
-		return AddressTypeSize
-	case ValueSourceType:
-		return ValueSourceTypeSize
-	case ValueDestinationType:
-		return ValueDestinationTypeSize
-	default:
-		return 0
-	}
-}
-
 func isNumType(param string) bool {
-	_, err := strconv.ParseInt(param, 0, IntTypeSize+1)
+	_, err := strconv.ParseInt(param, 0, types.IntTypeSize+1)
 	return err == nil
 }
 
@@ -68,39 +29,39 @@ func isAddressType(param string) bool {
 
 type commandEntry struct {
 	Code   types.Word32
-	Params []ParamType
+	Params []types.ParamType
 }
 
 var commandsMap = map[string]commandEntry{
-	"skip": {Code: consts.C_SKIP, Params: []ParamType{}},
-	"mov":  {Code: consts.C_MOV, Params: []ParamType{ValueDestinationType, ValueSourceType}}, // dest=src
-	"add":  {Code: consts.C_ADD, Params: []ParamType{RegType, ValueSourceType}},              // dest+=src
-	"adc":  {Code: consts.C_ADC, Params: []ParamType{RegType, ValueSourceType}},              // dest+=src+fc
-	"sub":  {Code: consts.C_SUB, Params: []ParamType{RegType, ValueSourceType}},              // dest-=src
-	"sbb":  {Code: consts.C_SBB, Params: []ParamType{RegType, ValueSourceType}},              // dest-=(src+fc)
-	"mul":  {Code: consts.C_MUL, Params: []ParamType{RegType, ValueSourceType}},              // dest*=src
-	"imul": {Code: consts.C_IMUL, Params: []ParamType{RegType, ValueSourceType}},             // dest*=src (signed)
-	"div":  {Code: consts.C_DIV, Params: []ParamType{RegType, ValueSourceType}},              // dest/=src
-	"shl":  {Code: consts.C_SHL, Params: []ParamType{RegType, IntType}},                      // r<<=imm
-	"shr":  {Code: consts.C_SHR, Params: []ParamType{RegType, IntType}},                      // r>>=imm
-	"sar":  {Code: consts.C_SAR, Params: []ParamType{RegType, IntType}},                      // r<<=imm (arithmetic)
-	"and":  {Code: consts.C_AND, Params: []ParamType{RegType, RegType}},                      // ra&=rb
-	"or":   {Code: consts.C_OR, Params: []ParamType{RegType, RegType}},                       // ra|=rb
-	"xor":  {Code: consts.C_XOR, Params: []ParamType{RegType, RegType}},                      // ra^=rb
-	"not":  {Code: consts.C_NOT, Params: []ParamType{RegType}},                               // ra=~ra
-	"jmp":  {Code: consts.C_JMP, Params: []ParamType{AddressType}},
+	"skip": {Code: consts.C_SKIP, Params: []types.ParamType{}},
+	"mov":  {Code: consts.C_MOV, Params: []types.ParamType{types.ValueDestinationType, types.ValueSourceType}}, // dest=src
+	"add":  {Code: consts.C_ADD, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest+=src
+	"adc":  {Code: consts.C_ADC, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest+=src+fc
+	"sub":  {Code: consts.C_SUB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest-=src
+	"sbb":  {Code: consts.C_SBB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest-=(src+fc)
+	"mul":  {Code: consts.C_MUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest*=src
+	"imul": {Code: consts.C_IMUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest*=src (signed)
+	"div":  {Code: consts.C_DIV, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest/=src
+	"shl":  {Code: consts.C_SHL, Params: []types.ParamType{types.RegType, types.IntType}},                      // r<<=imm
+	"shr":  {Code: consts.C_SHR, Params: []types.ParamType{types.RegType, types.IntType}},                      // r>>=imm
+	"sar":  {Code: consts.C_SAR, Params: []types.ParamType{types.RegType, types.IntType}},                      // r<<=imm (arithmetic)
+	"and":  {Code: consts.C_AND, Params: []types.ParamType{types.RegType, types.RegType}},                      // ra&=rb
+	"or":   {Code: consts.C_OR, Params: []types.ParamType{types.RegType, types.RegType}},                       // ra|=rb
+	"xor":  {Code: consts.C_XOR, Params: []types.ParamType{types.RegType, types.RegType}},                      // ra^=rb
+	"not":  {Code: consts.C_NOT, Params: []types.ParamType{types.RegType}},                                     // ra=~ra
+	"jmp":  {Code: consts.C_JMP, Params: []types.ParamType{types.AddressType}},
 	/* TODO */
-	"call": {Code: consts.C_CALL, Params: []ParamType{}},
-	"ret":  {Code: consts.C_RET, Params: []ParamType{}},
-	"halt": {Code: consts.C_HALT, Params: []ParamType{}},
-	"ei":   {Code: consts.C_EI, Params: []ParamType{}},
-	"di":   {Code: consts.C_DI, Params: []ParamType{}},
+	"call": {Code: consts.C_CALL, Params: []types.ParamType{}},
+	"ret":  {Code: consts.C_RET, Params: []types.ParamType{}},
+	"halt": {Code: consts.C_HALT, Params: []types.ParamType{}},
+	"ei":   {Code: consts.C_EI, Params: []types.ParamType{}},
+	"di":   {Code: consts.C_DI, Params: []types.ParamType{}},
 	/*     */
-	"int":  {Code: consts.C_INT, Params: []ParamType{IntType}},
-	"addf": {Code: consts.C_ADDF, Params: []ParamType{RegType, ValueSourceType}},
-	"subf": {Code: consts.C_SUBF, Params: []ParamType{RegType, ValueSourceType}},
-	"mulf": {Code: consts.C_MULF, Params: []ParamType{RegType, ValueSourceType}},
-	"divf": {Code: consts.C_DIVF, Params: []ParamType{RegType, ValueSourceType}},
+	"int":  {Code: consts.C_INT, Params: []types.ParamType{types.IntType}},
+	"addf": {Code: consts.C_ADDF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
+	"subf": {Code: consts.C_SUBF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
+	"mulf": {Code: consts.C_MULF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
+	"divf": {Code: consts.C_DIVF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
 }
 
 var flagMap = map[string]types.Word32{
@@ -117,8 +78,21 @@ var flagMap = map[string]types.Word32{
 var regMap = map[string]types.Word32{}
 
 func init() {
-	for i := types.Word32(0); i < 64; i++ {
-		regMap[fmt.Sprintf("r%d", i)] = i
+	// TODO: No Magic numbers connect to consts
+	for i := types.Word32(0); i < 8; i++ {
+		regMap[fmt.Sprintf("rb%d", i)] = i
+	}
+	for i := types.Word32(0); i < 24; i++ {
+		regMap[fmt.Sprintf("rw%d", i)] = i
+	}
+	for i := types.Word32(0); i < 8; i++ {
+		regMap[fmt.Sprintf("rx%d", i)] = i
+	}
+	for i := types.Word32(0); i < 8; i++ {
+		regMap[fmt.Sprintf("rh%d", i)] = i
+	}
+	for i := types.Word32(0); i < 8; i++ {
+		regMap[fmt.Sprintf("rl%d", i)] = i
 	}
 }
 
@@ -141,7 +115,7 @@ func convertFlagParam(param string) (types.Word32, error) {
 }
 
 func convertIntParam(param string) (types.Word32, error) {
-	num, err := strconv.ParseInt(param, 0, IntTypeSize+1)
+	num, err := strconv.ParseInt(param, 0, types.IntTypeSize+1)
 	if err != nil {
 		return 0b0, err
 	}
@@ -156,35 +130,37 @@ func convertAddressParam(param string) (types.Word32, error) {
 func convertValueSourceType(param string) (types.Word32, error) {
 	switch {
 	case isRegisterType(param):
-		return convertRegParam(param)
+		num, err := convertRegParam(param)
+		num |= types.SourceRegMode
+		return num, err
 	case isNumType(param):
 		num, err := convertIntParam(param)
-		num |= 0b01 << IntTypeSize
+		num |= types.SourceIntMode
 		return num, err
 	case isAddressType(param):
 		num, err := convertAddressParam(param)
-		num |= 0b10 << IntTypeSize
+		num |= types.SourceAddrMode
 		return num, err
 	default:
 		return 0b0, errors.New(fmt.Sprintf("could not convert %s to ValueSourceType", param))
 	}
 }
 
-func convertParam(param string, paramType ParamType) (types.Word32, error) {
+func convertParam(param string, paramType types.ParamType) (types.Word32, error) {
 	switch paramType {
-	case RegType:
+	case types.RegType:
 		return convertRegParam(param)
 
-	case FlagType:
+	case types.FlagType:
 		return convertFlagParam(param)
 
-	case IntType:
+	case types.IntType:
 		return convertIntParam(param)
 
-	case ValueSourceType:
+	case types.ValueSourceType:
 		return convertValueSourceType(param)
 
-	case ValueDestinationType:
+	case types.ValueDestinationType:
 		var paramRunes = []rune(param)
 		switch {
 		case paramRunes[0] == 'r':
@@ -193,7 +169,7 @@ func convertParam(param string, paramType ParamType) (types.Word32, error) {
 		case len(paramRunes) > 1 && paramRunes[0] == '[' && paramRunes[len(paramRunes)-1] == ']':
 			sParam := string(paramRunes[1 : len(paramRunes)-1])
 			num, err := convertRegParam(sParam)
-			num |= 0b1 << RegTypeSize
+			num |= 0b1 << types.RegTypeSize
 			return num, err
 
 		default:
@@ -216,7 +192,7 @@ func Convert(instr string) (types.Word32, error) {
 
 	var cmd types.Word32
 	cmd = entry.Code
-	var shift = 5
+	var shift = types.OperatorSize
 	for i := 0; i < len(entry.Params); i++ {
 		param, err := convertParam(command[i+1], entry.Params[i])
 		if err != nil {
@@ -224,7 +200,7 @@ func Convert(instr string) (types.Word32, error) {
 		}
 
 		cmd |= param << shift
-		shift += SizeOfParamType(entry.Params[i])
+		shift += types.SizeOfParamType(entry.Params[i])
 	}
 
 	if shift > 32 {

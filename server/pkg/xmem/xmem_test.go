@@ -10,13 +10,13 @@ const testSegment types.SegmentID = 1
 func TestXMem(t *testing.T) {
 	xmem := InitExternalMemory()
 
-	err := xmem.NewSegment(testSegment, 0b0, 0b111)
+	err := xmem.NewSegment(testSegment, 0b111)
 	if err != nil {
 		t.Fatal("Error while creating new segment\n")
 	}
 	t.Log("Successfully initialized xmem")
 
-	err = xmem.NewSegment(testSegment, 0b0, 0b111)
+	err = xmem.NewSegment(testSegment, 0b111)
 	if err == nil {
 		t.Error("Segment overwrite\n")
 	}
