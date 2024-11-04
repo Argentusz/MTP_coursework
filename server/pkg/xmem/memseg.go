@@ -3,6 +3,7 @@ package xmem
 import (
 	"errors"
 	"fmt"
+	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
 )
 
@@ -55,7 +56,19 @@ func (mseg *MemorySegment) SetWord32(addr types.Address, data types.Word32) erro
 	}
 
 	for i := types.Address(0); i < 4; i++ {
-		word8 := types.Word8((data >> (3 - i)) & 0b11111111)
+		word8 := types.Word8((data >> ((3 - i) * 8)) & consts.MAX_WORD8)
+		mseg.Table[addr+i] = word8
+	}
+	return nil
+}
+
+func (mseg *MemorySegment) SetWord16(addr types.Address, data types.Word16) error {
+	if addr+1 > mseg.maxAddr || addr < mseg.minAddr {
+		return errors.New(fmt.Sprintf("address %o is out of range for segment", addr))
+	}
+
+	for i := types.Address(0); i < 2; i++ {
+		word8 := types.Word8((data >> ((1 - i) * 8)) & consts.MAX_WORD8)
 		mseg.Table[addr+i] = word8
 	}
 	return nil

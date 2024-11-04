@@ -4,7 +4,7 @@ type FlagsRegister byte
 
 // TODO: Too lazy to template code for each flag rn, will be written on demand
 
-func (f *FlagsRegister) ZeroIsActive() bool {
+func (f *FlagsRegister) FZ() bool {
 	return (*f & 0b1) == 1
 }
 
@@ -25,6 +25,10 @@ func (f *FlagsRegister) MovZero(value bool) {
 	}
 }
 
+func (f *FlagsRegister) FC() FlagsRegister {
+	return *f & 0b10
+}
+
 func (f *FlagsRegister) OverflowOn() {
-	*f |= 0b1
+	*f |= 0b1000
 }

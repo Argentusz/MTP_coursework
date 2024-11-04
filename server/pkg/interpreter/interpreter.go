@@ -79,20 +79,26 @@ var regMap = map[string]types.Word32{}
 
 func init() {
 	// TODO: No Magic numbers connect to consts
+	var id types.Word32
 	for i := types.Word32(0); i < 8; i++ {
-		regMap[fmt.Sprintf("rb%d", i)] = i
+		regMap[fmt.Sprintf("rb%d", i)] = id
+		id++
 	}
-	for i := types.Word32(0); i < 24; i++ {
-		regMap[fmt.Sprintf("rw%d", i)] = i
-	}
-	for i := types.Word32(0); i < 8; i++ {
-		regMap[fmt.Sprintf("rx%d", i)] = i
-	}
-	for i := types.Word32(0); i < 8; i++ {
-		regMap[fmt.Sprintf("rh%d", i)] = i
+	for i := types.Word32(0); i < 32; i++ {
+		regMap[fmt.Sprintf("rw%d", i)] = id
+		id++
 	}
 	for i := types.Word32(0); i < 8; i++ {
-		regMap[fmt.Sprintf("rl%d", i)] = i
+		regMap[fmt.Sprintf("rx%d", i)] = id
+		id++
+	}
+	for i := types.Word32(0); i < 8; i++ {
+		regMap[fmt.Sprintf("rh%d", i)] = id
+		id++
+	}
+	for i := types.Word32(0); i < 8; i++ {
+		regMap[fmt.Sprintf("rl%d", i)] = id
+		id++
 	}
 }
 
@@ -180,6 +186,7 @@ func convertParam(param string, paramType types.ParamType) (types.Word32, error)
 }
 
 func Convert(instr string) (types.Word32, error) {
+	//fmt.Println("Converting", instr)
 	command := strings.Split(instr, " ")
 	entry, found := commandsMap[command[0]]
 	if !found {
@@ -192,20 +199,24 @@ func Convert(instr string) (types.Word32, error) {
 
 	var cmd types.Word32
 	cmd = entry.Code
+	//fmt.Printf("Command code: %05b\n\n", cmd)
 	var shift = types.OperatorSize
 	for i := 0; i < len(entry.Params); i++ {
+		//fmt.Println("Converting param: ", command[i+1])
 		param, err := convertParam(command[i+1], entry.Params[i])
+		//fmt.Printf(fmt.Sprintf("param code: %%0%db\n", types.SizeOfParamType(entry.Params[i])), param)
 		if err != nil {
 			return 0b0, err
 		}
 
 		cmd |= param << shift
+		//fmt.Printf("Resulting in cmd: %032b\n", cmd)
 		shift += types.SizeOfParamType(entry.Params[i])
+		//fmt.Println()
 	}
 
 	if shift > 32 {
 		return 0, errors.New("command exceeds 32-bit limit")
 	}
-
 	return cmd, nil
 }

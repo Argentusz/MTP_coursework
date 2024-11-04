@@ -143,3 +143,21 @@ func (rram *RRAM) PutValue(ID types.Word32, value types.Value) {
 		}
 	}
 }
+
+func (rram *RRAM) GetRegSize(ID types.Word32) byte {
+	t, _ := getTypeOffset(ID)
+	switch t {
+	case SmallGPRType:
+		return 8
+	case GPRType:
+		return 32
+	case ExtendedGPRType:
+		return 32
+	case HighSubGPRType:
+		return 16
+	case LowSubGPRType:
+		return 16
+	default:
+		return 0
+	}
+}
