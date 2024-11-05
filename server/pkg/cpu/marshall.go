@@ -45,8 +45,8 @@ func (cpu *CPU) marshallHumanRRAM() {
 	fmt.Printf("| %4s | %10d |\n", "IRB", *cpu.RRAM.SYS.IRB)
 	fmt.Printf("| %4s | %10d |\n", "MBR", *cpu.RRAM.SYS.MBR)
 	fmt.Printf("| %4s | %10d |\n", "TMP", *cpu.RRAM.SYS.TMP)
-	fmt.Printf("| %4s |   %8b |\n", "FLG", cpu.RRAM.SYS.FLG)
-	fmt.Printf("| %4s |   %8b |\n\n", "FLGI", cpu.RRAM.SYS.FLGI)
+	fmt.Printf("| %4s |   %08b |\n", "FLG", cpu.RRAM.SYS.FLG)
+	fmt.Printf("| %4s |   %08b |\n\n", "FLGI", cpu.RRAM.SYS.FLGI)
 
 	fmt.Printf("| %10s |      | %60s%17s |     | %17s |\n", "SGPR", " ", "GPR", "XGPR")
 	fmt.Printf("%14s      %81s     %21s\n", "--------------", "---------------------------------------------------------------------------------", "---------------------")

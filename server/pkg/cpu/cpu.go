@@ -82,10 +82,20 @@ func (cpu *CPU) Exec() bool {
 		cpu.sbb()
 	case consts.C_MUL:
 		cpu.mul()
-	case consts.C_IMUL:
-		cpu.imul()
 	case consts.C_DIV:
 		cpu.div()
+	case consts.C_IADD:
+		cpu.iadd()
+	case consts.C_IADC:
+		cpu.iadc()
+	case consts.C_ISUB:
+		cpu.isub()
+	case consts.C_ISBB:
+		cpu.isbb()
+	case consts.C_IMUL:
+		cpu.imul()
+	case consts.C_IDIV:
+		cpu.idiv()
 	case consts.C_SHL:
 		cpu.shl()
 	case consts.C_SHR:

@@ -40,8 +40,13 @@ var commandsMap = map[string]commandEntry{
 	"sub":  {Code: consts.C_SUB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest-=src
 	"sbb":  {Code: consts.C_SBB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest-=(src+fc)
 	"mul":  {Code: consts.C_MUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest*=src
-	"imul": {Code: consts.C_IMUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest*=src (signed)
 	"div":  {Code: consts.C_DIV, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest/=src
+	"iadd": {Code: consts.C_IADD, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest+=src
+	"iadc": {Code: consts.C_IADC, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest+=src+fc
+	"isub": {Code: consts.C_ISUB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest-=src
+	"isbb": {Code: consts.C_ISBB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest-=(src+fc)
+	"imul": {Code: consts.C_IMUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest*=src (signed)
+	"idiv": {Code: consts.C_IDIV, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest/=src
 	"shl":  {Code: consts.C_SHL, Params: []types.ParamType{types.RegType, types.IntType}},                      // r<<=imm
 	"shr":  {Code: consts.C_SHR, Params: []types.ParamType{types.RegType, types.IntType}},                      // r>>=imm
 	"sar":  {Code: consts.C_SAR, Params: []types.ParamType{types.RegType, types.IntType}},                      // r<<=imm (arithmetic)
@@ -124,6 +129,10 @@ func convertIntParam(param string) (types.Word32, error) {
 	num, err := strconv.ParseInt(param, 0, types.IntTypeSize+1)
 	if err != nil {
 		return 0b0, err
+	}
+
+	if num < 0 {
+		return types.Word32(-num) | (1 << (types.IntTypeSize - 1)), nil
 	}
 
 	return types.Word32(num), nil

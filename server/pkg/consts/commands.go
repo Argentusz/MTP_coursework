@@ -11,8 +11,13 @@ const (
 	C_SUB
 	C_SBB
 	C_MUL
-	C_IMUL
 	C_DIV
+	C_IADD
+	C_IADC
+	C_ISUB
+	C_ISBB
+	C_IMUL
+	C_IDIV
 	C_SHL
 	C_SHR
 	C_SAR

@@ -45,12 +45,32 @@ func (cpu *CPU) mul() {
 	cpu._binaryRSop(func(a, b types.Value) types.Value { return a * b })
 }
 
-func (cpu *CPU) imul() {
-	panic("TODO: imul is NOI.")
-}
-
 func (cpu *CPU) div() {
 	cpu._binaryRSop(func(a, b types.Value) types.Value { return a / b })
+}
+
+func (cpu *CPU) iadd() {
+	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a + b })
+}
+
+func (cpu *CPU) iadc() {
+	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a + b + types.SValue(cpu.RRAM.SYS.FLG.FC()) })
+}
+
+func (cpu *CPU) isub() {
+	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a - b })
+}
+
+func (cpu *CPU) isbb() {
+	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a - b - types.SValue(cpu.RRAM.SYS.FLG.FC()) })
+}
+
+func (cpu *CPU) idiv() {
+	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a / b })
+}
+
+func (cpu *CPU) imul() {
+	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a * b })
 }
 
 func (cpu *CPU) shl() {
@@ -138,4 +158,25 @@ func (cpu *CPU) _binaryRSop(fn func(a, b types.Value) types.Value) {
 	}
 
 	cpu.RRAM.PutValue(dstRegID, fn(dstVal, srcVal))
+}
+
+func (cpu *CPU) _binaryRSiop(fn func(a, b types.SValue) types.SValue) {
+	dstRegID := cpu.getReg()
+	source := cpu.getSrc()
+
+	srcVal := types.Value(cpu.castSrcToImm(source))
+	dstVal, err := cpu.RRAM.GetValue(dstRegID)
+	if err != nil {
+		// SIGILL
+		return
+	}
+
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	srcSize := cpu.castSrcSize(source)
+
+	dstSVal := castValueSign(dstVal, dstSize)
+	srcSVal := castValueSign(srcVal, srcSize)
+
+	res := fn(dstSVal, srcSVal)
+	cpu.RRAM.PutValue(dstRegID, castValueUnsign(res, dstSize))
 }

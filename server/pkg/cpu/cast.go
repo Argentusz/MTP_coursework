@@ -1,6 +1,8 @@
 package cpu
 
-import "github.com/Argentusz/MTP_coursework/pkg/types"
+import (
+	"github.com/Argentusz/MTP_coursework/pkg/types"
+)
 
 func (cpu *CPU) castSrcToImm(src types.Word32) types.Word32 {
 	mode := src & types.SourceModeMask
@@ -62,4 +64,22 @@ func (cpu *CPU) castDstToModeAddr(dst types.Word32) (bool, types.Word32) {
 		// SIGILL
 		return false, 0
 	}
+}
+
+func castValueSign(val types.Value, size byte) types.SValue {
+	var valMask = types.Value((1 << (size - 1)) - 1)
+	var valPure = val & valMask
+
+	if valPure != val {
+		return -types.SValue(valPure)
+	}
+	return types.SValue(val)
+}
+
+func castValueUnsign(val types.SValue, size byte) types.Value {
+	if val < 0 {
+		return types.Value(-val) | (1 << (size - 1))
+	}
+
+	return types.Value(val)
 }
