@@ -55,13 +55,11 @@ var commandsMap = map[string]commandEntry{
 	"xor":  {Code: consts.C_XOR, Params: []types.ParamType{types.RegType, types.RegType}},                      // ra^=rb
 	"not":  {Code: consts.C_NOT, Params: []types.ParamType{types.RegType}},                                     // ra=~ra
 	"jmp":  {Code: consts.C_JMP, Params: []types.ParamType{types.AddressType}},
-	/* TODO */
-	"call": {Code: consts.C_CALL, Params: []types.ParamType{}},
+	"call": {Code: consts.C_CALL, Params: []types.ParamType{types.AddressType}},
 	"ret":  {Code: consts.C_RET, Params: []types.ParamType{}},
 	"halt": {Code: consts.C_HALT, Params: []types.ParamType{}},
 	"ei":   {Code: consts.C_EI, Params: []types.ParamType{}},
 	"di":   {Code: consts.C_DI, Params: []types.ParamType{}},
-	/*     */
 	"int":  {Code: consts.C_INT, Params: []types.ParamType{types.IntType}},
 	"addf": {Code: consts.C_ADDF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
 	"subf": {Code: consts.C_SUBF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},

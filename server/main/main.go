@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/cpu"
 	"github.com/Argentusz/MTP_coursework/pkg/interpreter"
@@ -17,6 +16,7 @@ func main() {
 		"mov rw3 0",
 		"add rw1 rw2",
 		"mov [rw3] rw1",
+		"halt",
 	}
 
 	for i, line := range program {
@@ -31,9 +31,9 @@ func main() {
 		}
 	}
 
-	for i := 0; i < len(program); i++ {
-		fmt.Println(program[i])
-		mtp.Exec()
+	finished := false
+	for !finished {
+		finished = mtp.Exec()
 	}
 
 	mtp.MarshallHuman()

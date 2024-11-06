@@ -28,7 +28,7 @@ func (cpu *CPU) fetch(segmentID types.SegmentID, addr types.Address) {
 	var err error
 	*cpu.RRAM.SYS.MBR, err = cpu.XMEM.At(segmentID).GetWord32(addr)
 	if err != nil {
-		// SIGSEGV
+		panic("SIGSEGV")
 	}
 }
 
@@ -65,11 +65,10 @@ func (cpu *CPU) postUsrData(addr types.Address, val types.Word32, size byte) {
 
 func (cpu *CPU) Exec() bool {
 	cpu.fetchInstr()
-	//fmt.Printf("Executing %027b %05b\n", *cpu.RRAM.SYS.TMP>>5, *cpu.RRAM.SYS.TMP&0b11111)
 	operator := cpu.getOperator()
-	//fmt.Printf("Operator code: %05b\n", operator)
-	//fmt.Printf("TMP state: %032b\n", *cpu.RRAM.SYS.TMP)
 	switch operator {
+	case consts.C_SKIP:
+		cpu.skip()
 	case consts.C_MOV:
 		cpu.mov()
 	case consts.C_ADD:
@@ -111,17 +110,17 @@ func (cpu *CPU) Exec() bool {
 	case consts.C_NOT:
 		cpu.not()
 	case consts.C_JMP:
-		panic("jmp is NOI")
+		cpu.jmp()
 	case consts.C_CALL:
-		panic("call is NOI")
+		cpu.call()
 	case consts.C_RET:
-		panic("ret is NOI")
+		cpu.ret()
 	case consts.C_HALT:
-		panic("halt is NOI")
+		cpu.skip()
 	case consts.C_EI:
-		panic("ei is NOI")
+		cpu.ei()
 	case consts.C_DI:
-		panic("di is NOI")
+		cpu.di()
 	case consts.C_INT:
 		panic("int is NOI")
 	case consts.C_ADDF:
@@ -138,5 +137,5 @@ func (cpu *CPU) Exec() bool {
 	}
 
 	*cpu.RRAM.SYS.IR += 4
-	return true
+	return operator == consts.C_HALT
 }

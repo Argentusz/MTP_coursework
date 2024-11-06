@@ -5,18 +5,15 @@ import (
 )
 
 func (cpu *CPU) skip() {
-
+	cpu.RRAM.SYS.FLG.Drop()
 }
 
 func (cpu *CPU) mov() {
-	//fmt.Println("Executing MOV")
 	param1 := cpu.getDest()
 	param2 := cpu.getSrc()
 
-	//fmt.Printf("Encrypted params: %07b %018b\n", param1, param2)
 	srcImm := types.Value(cpu.castSrcToImm(param2))
 	isRegister, dstAddr := cpu.castDstToModeAddr(param1)
-	//fmt.Printf("Decypher params: source immediate value = %d, destination address = %d, destination is register %v\n", srcImm, dstAddr, isRegister)
 	if isRegister {
 		cpu.RRAM.PutValue(dstAddr, srcImm)
 		return
@@ -26,59 +23,79 @@ func (cpu *CPU) mov() {
 }
 
 func (cpu *CPU) add() {
-	cpu._binaryRSop(func(a, b types.Value) types.Value { return a + b })
+	cpu._umathRS(func(a, b types.Value) types.Value { return a + b })
 }
 
 func (cpu *CPU) adc() {
-	cpu._binaryRSop(func(a, b types.Value) types.Value { return a + b + types.Value(cpu.RRAM.SYS.FLG.FC()) })
+	cpu._umathRS(func(a, b types.Value) types.Value {
+		if cpu.RRAM.SYS.FLG.FC() {
+			return a + b + 1
+		}
+		return a + b
+	})
 }
 
 func (cpu *CPU) sub() {
-	cpu._binaryRSop(func(a, b types.Value) types.Value { return a - b })
+	cpu._umathRS(func(a, b types.Value) types.Value { return a - b })
 }
 
 func (cpu *CPU) sbb() {
-	cpu._binaryRSop(func(a, b types.Value) types.Value { return a - b - types.Value(cpu.RRAM.SYS.FLG.FC()) })
+	cpu._umathRS(func(a, b types.Value) types.Value {
+		if cpu.RRAM.SYS.FLG.FC() {
+			return a - b - 1
+		}
+		return a - b
+	})
 }
 
 func (cpu *CPU) mul() {
-	cpu._binaryRSop(func(a, b types.Value) types.Value { return a * b })
+	cpu._umathRS(func(a, b types.Value) types.Value { return a * b })
 }
 
 func (cpu *CPU) div() {
-	cpu._binaryRSop(func(a, b types.Value) types.Value { return a / b })
+	cpu._umathRS(func(a, b types.Value) types.Value { return a / b })
 }
 
 func (cpu *CPU) iadd() {
-	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a + b })
+	cpu._imathRS(func(a, b types.SValue) types.SValue { return a + b })
 }
 
 func (cpu *CPU) iadc() {
-	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a + b + types.SValue(cpu.RRAM.SYS.FLG.FC()) })
+	cpu._imathRS(func(a, b types.SValue) types.SValue {
+		if cpu.RRAM.SYS.FLG.FC() {
+			return a + b + 1
+		}
+		return a + b
+	})
 }
 
 func (cpu *CPU) isub() {
-	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a - b })
+	cpu._imathRS(func(a, b types.SValue) types.SValue { return a - b })
 }
 
 func (cpu *CPU) isbb() {
-	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a - b - types.SValue(cpu.RRAM.SYS.FLG.FC()) })
+	cpu._imathRS(func(a, b types.SValue) types.SValue {
+		if cpu.RRAM.SYS.FLG.FC() {
+			return a - b - 1
+		}
+		return a - b
+	})
 }
 
 func (cpu *CPU) idiv() {
-	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a / b })
+	cpu._imathRS(func(a, b types.SValue) types.SValue { return a / b })
 }
 
 func (cpu *CPU) imul() {
-	cpu._binaryRSiop(func(a, b types.SValue) types.SValue { return a * b })
+	cpu._imathRS(func(a, b types.SValue) types.SValue { return a * b })
 }
 
 func (cpu *CPU) shl() {
-	cpu._binaryRIop(func(a, b types.Value) types.Value { return a << b })
+	cpu._bitRI(func(a, b types.Value) types.Value { return a << b })
 }
 
 func (cpu *CPU) shr() {
-	cpu._binaryRIop(func(a, b types.Value) types.Value { return a >> b })
+	cpu._bitRI(func(a, b types.Value) types.Value { return a >> b })
 }
 
 func (cpu *CPU) sar() {
@@ -96,15 +113,43 @@ func (cpu *CPU) sar() {
 }
 
 func (cpu *CPU) and() {
-	cpu._binaryRRop(func(a, b types.Value) types.Value { return a & b })
+	cpu._bitRR(func(a, b types.Value) types.Value { return a & b })
 }
 
 func (cpu *CPU) or() {
-	cpu._binaryRRop(func(a, b types.Value) types.Value { return a | b })
+	cpu._bitRR(func(a, b types.Value) types.Value { return a | b })
 }
 
 func (cpu *CPU) xor() {
-	cpu._binaryRRop(func(a, b types.Value) types.Value { return a ^ b })
+	cpu._bitRR(func(a, b types.Value) types.Value { return a ^ b })
+}
+
+func (cpu *CPU) jmp() {
+	addr := cpu.getAddr()
+	*cpu.RRAM.SYS.IR = cpu.castAddrToImm(addr)
+	cpu.RRAM.SYS.FLG.Drop()
+}
+
+func (cpu *CPU) call() {
+	addr := cpu.getAddr()
+	*cpu.RRAM.SYS.IRB = *cpu.RRAM.SYS.IR
+	*cpu.RRAM.SYS.IR = cpu.castAddrToImm(addr)
+	cpu.RRAM.SYS.FLG.Drop()
+}
+
+func (cpu *CPU) ret() {
+	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.IRB
+	cpu.RRAM.SYS.FLG.Drop()
+}
+
+func (cpu *CPU) ei() {
+	cpu.RRAM.SYS.FLG.Drop()
+	cpu.RRAM.SYS.FLG.FIOn()
+}
+
+func (cpu *CPU) di() {
+	cpu.RRAM.SYS.FLG.Drop()
+	cpu.RRAM.SYS.FLG.FIOff()
 }
 
 func (cpu *CPU) not() {
@@ -120,7 +165,7 @@ func (cpu *CPU) not() {
 	cpu.RRAM.PutValue(dstRegID, dstVal^mask)
 }
 
-func (cpu *CPU) _binaryRRop(fn func(a, b types.Value) types.Value) {
+func (cpu *CPU) _bitRR(fn func(a, b types.Value) types.Value) {
 	dstRegID := cpu.getReg()
 	srcRegID := cpu.getReg()
 
@@ -131,10 +176,13 @@ func (cpu *CPU) _binaryRRop(fn func(a, b types.Value) types.Value) {
 		return
 	}
 
-	cpu.RRAM.PutValue(dstRegID, fn(dstVal, srcVal))
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	res := fn(dstVal, srcVal)
+	overflow := cpu.RRAM.PutValue(dstRegID, res)
+	cpu.RRAM.SYS.FLG.OnUnsignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
 }
 
-func (cpu *CPU) _binaryRIop(fn func(a, b types.Value) types.Value) {
+func (cpu *CPU) _bitRI(fn func(a, b types.Value) types.Value) {
 	dstRegID := cpu.getReg()
 	immVal := cpu.getInt()
 	dstVal, err := cpu.RRAM.GetValue(dstRegID)
@@ -143,10 +191,14 @@ func (cpu *CPU) _binaryRIop(fn func(a, b types.Value) types.Value) {
 		return
 	}
 
-	cpu.RRAM.PutValue(dstRegID, fn(dstVal, types.Value(immVal)))
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	res := fn(dstVal, types.Value(immVal))
+	overflow := cpu.RRAM.PutValue(dstRegID, res)
+	cpu.RRAM.SYS.FLG.OnUnsignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
+
 }
 
-func (cpu *CPU) _binaryRSop(fn func(a, b types.Value) types.Value) {
+func (cpu *CPU) _umathRS(fn func(a, b types.Value) types.Value) {
 	dstRegID := cpu.getReg()
 	source := cpu.getSrc()
 
@@ -157,10 +209,13 @@ func (cpu *CPU) _binaryRSop(fn func(a, b types.Value) types.Value) {
 		return
 	}
 
-	cpu.RRAM.PutValue(dstRegID, fn(dstVal, srcVal))
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	res := fn(dstVal, srcVal)
+	overflow := cpu.RRAM.PutValue(dstRegID, res)
+	cpu.RRAM.SYS.FLG.OnUnsignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
 }
 
-func (cpu *CPU) _binaryRSiop(fn func(a, b types.SValue) types.SValue) {
+func (cpu *CPU) _imathRS(fn func(a, b types.SValue) types.SValue) {
 	dstRegID := cpu.getReg()
 	source := cpu.getSrc()
 
@@ -178,5 +233,6 @@ func (cpu *CPU) _binaryRSiop(fn func(a, b types.SValue) types.SValue) {
 	srcSVal := castValueSign(srcVal, srcSize)
 
 	res := fn(dstSVal, srcSVal)
-	cpu.RRAM.PutValue(dstRegID, castValueUnsign(res, dstSize))
+	overflow := cpu.RRAM.PutValue(dstRegID, castValueUnsign(res, dstSize))
+	cpu.RRAM.SYS.FLG.OnSignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
 }

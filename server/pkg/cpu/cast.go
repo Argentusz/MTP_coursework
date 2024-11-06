@@ -66,6 +66,12 @@ func (cpu *CPU) castDstToModeAddr(dst types.Word32) (bool, types.Word32) {
 	}
 }
 
+func (cpu *CPU) castAddrToImm(src types.Word32) types.Word32 {
+	addr, _ := cpu.RRAM.GetValue(src)
+	cpu.fetchUsrData(types.Address(addr))
+	return *cpu.RRAM.SYS.MBR
+}
+
 func castValueSign(val types.Value, size byte) types.SValue {
 	var valMask = types.Value((1 << (size - 1)) - 1)
 	var valPure = val & valMask

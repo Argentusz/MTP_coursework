@@ -113,35 +113,26 @@ func (rram *RRAM) GetValue(ID types.Word32) (types.Value, error) {
 	}
 }
 
-func (rram *RRAM) PutValue(ID types.Word32, value types.Value) {
+func (rram *RRAM) PutValue(ID types.Word32, value types.Value) bool {
 	regType, offset := getTypeOffset(ID)
 	switch regType {
 	case SmallGPRType:
 		*rram.SGPRs[offset] = types.Word8(value)
-		if value > consts.MAX_WORD8 {
-			rram.SYS.FLG.OverflowOn()
-		}
+		return value > consts.MAX_WORD8
 	case GPRType:
 		*rram.GPRs[offset] = types.Word32(value)
-		if value > consts.MAX_WORD32 {
-			rram.SYS.FLG.OverflowOn()
-		}
+		return value > consts.MAX_WORD32
 	case ExtendedGPRType:
 		*rram.XGPRs[offset] = types.Word32(value)
-		if value > consts.MAX_WORD32 {
-			rram.SYS.FLG.OverflowOn()
-		}
+		return value > consts.MAX_WORD32
 	case HighSubGPRType:
 		*rram.HGPRs[offset] = types.Word16(value)
-		if value > consts.MAX_WORD16 {
-			rram.SYS.FLG.OverflowOn()
-		}
+		return value > consts.MAX_WORD16
 	case LowSubGPRType:
 		*rram.LGPRs[offset] = types.Word16(value)
-		if value > consts.MAX_WORD16 {
-			rram.SYS.FLG.OverflowOn()
-		}
+		return value > consts.MAX_WORD16
 	}
+	return false
 }
 
 func (rram *RRAM) GetRegSize(ID types.Word32) byte {
