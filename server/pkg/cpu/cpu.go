@@ -85,7 +85,7 @@ func (cpu *CPU) Exec() bool {
 	case consts.C_DIV:
 		cpu.div()
 	case consts.C_IMOV:
-		panic("imov is NOI")
+		cpu.imov()
 	case consts.C_IADD:
 		cpu.iadd()
 	case consts.C_IADC:

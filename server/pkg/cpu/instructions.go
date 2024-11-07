@@ -56,6 +56,27 @@ func (cpu *CPU) div() {
 	cpu._umathRS(func(a, b types.Value) types.Value { return a / b })
 }
 
+func (cpu *CPU) imov() {
+	dst := cpu.getDest()
+	src := cpu.getSrc()
+
+	srcImm := types.Value(cpu.castSrcToImm(src))
+	isRegister, dstAddr := cpu.castDstToModeAddr(dst)
+
+	if isRegister {
+		srcSize := cpu.castSrcSize(src)
+		srcHighbit := srcImm >> (srcSize - 1)
+		dstSize := cpu.RRAM.GetRegSize(dstAddr)
+		srcImm &= (1 << (srcSize - 1)) - 1
+		srcImm |= srcHighbit << (dstSize - 1)
+		cpu.RRAM.PutValue(dstAddr, srcImm)
+		return
+	}
+
+	cpu.postUsrData(types.Address(dstAddr), types.Word32(srcImm), cpu.castSrcSize(src))
+
+}
+
 func (cpu *CPU) iadd() {
 	cpu._imathRS(func(a, b types.SValue) types.SValue { return a + b })
 }
