@@ -1,14 +1,20 @@
 package main
 
 import (
-	"fmt"
-	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"testing"
+	"unsafe"
 )
 
 func TestRandomStuff(t *testing.T) {
-	var num = 0b01111110001111000001100011111111
-	fmt.Printf("%032b\n", num)
+	uval1 := 0x3fc00000
+	uval2 := 0x404ccccd
 
-	fmt.Printf("%08b %08b %08b %08b", (num>>24)&consts.MAX_WORD8, (num>>16)&consts.MAX_WORD8, (num>>8)&consts.MAX_WORD8, (num)&consts.MAX_WORD8)
+	fval1 := *((*float32)(unsafe.Pointer(&uval1)))
+	fval2 := *((*float32)(unsafe.Pointer(&uval2)))
+	fres := fval1 + fval2
+
+	ures := *((*uint32)(unsafe.Pointer(&fres)))
+
+	t.Log(uval1, uval2, ures)
+	t.Log(fval1, fval2, fres)
 }

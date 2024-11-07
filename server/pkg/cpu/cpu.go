@@ -99,13 +99,13 @@ func (cpu *CPU) Exec() bool {
 	case consts.C_IDIV:
 		cpu.idiv()
 	case consts.C_ADDF:
-		panic("addf is NOI")
+		cpu.addf()
 	case consts.C_SUBF:
-		panic("subf is NOI")
+		cpu.subf()
 	case consts.C_MULF:
-		panic("mulf is NOI")
+		cpu.mulf()
 	case consts.C_DIVF:
-		panic("divf is NOI")
+		cpu.divf()
 	case consts.C_SHL:
 		cpu.shl()
 	case consts.C_SHR:

@@ -27,8 +27,8 @@ func InitXRegister() XRegister {
 
 	var reg XRegister
 	reg.ext = (*types.Word32)(dataptr)
-	reg.hig = (*types.Word16)(dataptr)
-	reg.low = *(**types.Word16)(unsafe.Pointer(&hptri))
+	reg.low = (*types.Word16)(dataptr)
+	reg.hig = *(**types.Word16)(unsafe.Pointer(&hptri))
 
 	return reg
 }

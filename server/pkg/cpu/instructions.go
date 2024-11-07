@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"github.com/Argentusz/MTP_coursework/pkg/types"
+	"unsafe"
 )
 
 func (cpu *CPU) skip() {
@@ -109,6 +110,22 @@ func (cpu *CPU) idiv() {
 
 func (cpu *CPU) imul() {
 	cpu._imathRS(func(a, b types.SValue) types.SValue { return a * b })
+}
+
+func (cpu *CPU) addf() {
+	cpu._fmathRS(func(a, b float32) float32 { return a + b })
+}
+
+func (cpu *CPU) subf() {
+	cpu._fmathRS(func(a, b float32) float32 { return a - b })
+}
+
+func (cpu *CPU) mulf() {
+	cpu._fmathRS(func(a, b float32) float32 { return a * b })
+}
+
+func (cpu *CPU) divf() {
+	cpu._fmathRS(func(a, b float32) float32 { return a / b })
 }
 
 func (cpu *CPU) shl() {
@@ -299,4 +316,27 @@ func (cpu *CPU) _imathRS(fn func(a, b types.SValue) types.SValue) {
 	res := fn(dstSVal, srcSVal)
 	overflow := cpu.RRAM.PutValue(dstRegID, castValueUnsign(res, dstSize))
 	cpu.RRAM.SYS.FLG.OnSignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
+}
+
+func (cpu *CPU) _fmathRS(fn func(a, b float32) float32) {
+	dstRegID := cpu.getReg()
+	source := cpu.getSrc()
+
+	srcUVal := types.Value(cpu.castSrcToImm(source))
+	dstUVal, err := cpu.RRAM.GetValue(dstRegID)
+
+	srcVal := *((*float32)(unsafe.Pointer(&srcUVal)))
+	dstVal := *((*float32)(unsafe.Pointer(&dstUVal)))
+
+	if err != nil {
+		// SIGILL
+		return
+	}
+
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	res := fn(dstVal, srcVal)
+	resUVal := *((*types.Value)(unsafe.Pointer(&res)))
+	overflow := cpu.RRAM.PutValue(dstRegID, resUVal)
+	cpu.RRAM.SYS.FLG.OnSignedOperation(res == 0, resUVal>>(dstSize-1) == 1, overflow)
+
 }
