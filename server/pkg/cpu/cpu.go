@@ -64,6 +64,7 @@ func (cpu *CPU) postUsrData(addr types.Address, val types.Word32, size byte) {
 }
 
 func (cpu *CPU) Exec() bool {
+	*cpu.RRAM.SYS.NIR += 4
 	cpu.fetchInstr()
 	operator := cpu.getOperator()
 	switch operator {
@@ -83,6 +84,8 @@ func (cpu *CPU) Exec() bool {
 		cpu.mul()
 	case consts.C_DIV:
 		cpu.div()
+	case consts.C_IMOV:
+		panic("imov is NOI")
 	case consts.C_IADD:
 		cpu.iadd()
 	case consts.C_IADC:
@@ -95,6 +98,14 @@ func (cpu *CPU) Exec() bool {
 		cpu.imul()
 	case consts.C_IDIV:
 		cpu.idiv()
+	case consts.C_ADDF:
+		panic("addf is NOI")
+	case consts.C_SUBF:
+		panic("subf is NOI")
+	case consts.C_MULF:
+		panic("mulf is NOI")
+	case consts.C_DIVF:
+		panic("divf is NOI")
 	case consts.C_SHL:
 		cpu.shl()
 	case consts.C_SHR:
@@ -111,6 +122,16 @@ func (cpu *CPU) Exec() bool {
 		cpu.not()
 	case consts.C_JMP:
 		cpu.jmp()
+	case consts.C_JIF:
+		cpu.jif()
+	case consts.C_JNF:
+		cpu.jnf()
+	case consts.C_JIZ:
+		cpu.jiz()
+	case consts.C_JNZ:
+		cpu.jnz()
+	case consts.C_LBL:
+		cpu.lbl()
 	case consts.C_CALL:
 		cpu.call()
 	case consts.C_RET:
@@ -123,19 +144,11 @@ func (cpu *CPU) Exec() bool {
 		cpu.di()
 	case consts.C_INT:
 		panic("int is NOI")
-	case consts.C_ADDF:
-		panic("addf is NOI")
-	case consts.C_SUBF:
-		panic("subf is NOI")
-	case consts.C_MULF:
-		panic("mulf is NOI")
-	case consts.C_DIVF:
-		panic("divf is NOI")
 	default:
 		// SIGILL
 		return false
 	}
 
-	*cpu.RRAM.SYS.IR += 4
+	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.NIR
 	return operator == consts.C_HALT
 }

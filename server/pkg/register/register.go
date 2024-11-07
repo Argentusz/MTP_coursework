@@ -31,8 +31,9 @@ const (
 type SysRegisters struct {
 	IR   Register      // Instruction Register        - Holds memory address of current instruction
 	IRB  Register      // Instruction Register Backup - For backuping IR before interrupt handling
+	NIR  Register      // Next Instruction			  - Holds memory address of next instruction
 	MBR  Register      // Memory Buffer Register      - For buffering data from External Memory
-	TMP  Register      // Reserved for internal usage
+	TMP  Register      // Temporal storage of instruction code
 	FLG  FlagsRegister // 8-bit flag register (see FlagsRegister)
 	FLGI FlagsRegister // Flag register backup
 }
@@ -49,10 +50,11 @@ type RRAM struct {
 func InitRRAM() RRAM {
 	var rram RRAM
 
-	var ir, irb, mbr, tmp types.Word32
+	var ir, irb, nir, mbr, tmp types.Word32
 
 	rram.SYS.IR = &ir
 	rram.SYS.IRB = &irb
+	rram.SYS.NIR = &nir
 	rram.SYS.MBR = &mbr
 	rram.SYS.TMP = &tmp
 	rram.SYS.FLG = 0b0

@@ -22,7 +22,7 @@ const (
 	ValueDestinationType // RegType OR AddressType
 )
 
-const OperatorSize = 5
+const OperatorSize = 6
 const (
 	RegTypeSize              = 6
 	FlagTypeSize             = 3

@@ -126,19 +126,62 @@ func (cpu *CPU) xor() {
 
 func (cpu *CPU) jmp() {
 	addr := cpu.getAddr()
-	*cpu.RRAM.SYS.IR = cpu.castAddrToImm(addr)
+	*cpu.RRAM.SYS.NIR = cpu.castAddrToImm(addr)
 	cpu.RRAM.SYS.FLG.Drop()
+}
+
+func (cpu *CPU) jif() {
+	flag := cpu.getFlag()
+	if cpu.RRAM.SYS.FLG.F(flag) {
+		cpu.jmp()
+	}
+	cpu.RRAM.SYS.FLG.Drop()
+}
+
+func (cpu *CPU) jnf() {
+	flag := cpu.getFlag()
+	if !cpu.RRAM.SYS.FLG.F(flag) {
+		cpu.jmp()
+	}
+	cpu.RRAM.SYS.FLG.Drop()
+}
+
+func (cpu *CPU) jiz() {
+	regID := cpu.getReg()
+	val, _ := cpu.RRAM.GetValue(regID)
+	if val == 0 {
+		cpu.jmp()
+	}
+	cpu.RRAM.SYS.FLG.Drop()
+}
+
+func (cpu *CPU) jnz() {
+	regID := cpu.getReg()
+	val, _ := cpu.RRAM.GetValue(regID)
+	if val != 0 {
+		cpu.jmp()
+	}
+	cpu.RRAM.SYS.FLG.Drop()
+}
+
+func (cpu *CPU) lbl() {
+	regID := cpu.getReg()
+	overflow := cpu.RRAM.PutValue(regID, types.Value(*cpu.RRAM.SYS.NIR))
+	cpu.RRAM.SYS.FLG.Drop()
+	if overflow {
+		cpu.RRAM.SYS.FLG.FCOn()
+	}
 }
 
 func (cpu *CPU) call() {
 	addr := cpu.getAddr()
 	*cpu.RRAM.SYS.IRB = *cpu.RRAM.SYS.IR
-	*cpu.RRAM.SYS.IR = cpu.castAddrToImm(addr)
+	*cpu.RRAM.SYS.NIR = cpu.castAddrToImm(addr)
 	cpu.RRAM.SYS.FLG.Drop()
 }
 
 func (cpu *CPU) ret() {
-	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.IRB
+	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.IRB
 	cpu.RRAM.SYS.FLG.Drop()
 }
 

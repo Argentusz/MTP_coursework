@@ -1,5 +1,7 @@
 package register
 
+import "github.com/Argentusz/MTP_coursework/pkg/types"
+
 type FlagsRegister byte
 
 // FZ - Result is zero
@@ -10,6 +12,11 @@ type FlagsRegister byte
 // FT - Step by step mode (switches only by supervisor)
 // FU - Sudo mode (switches only by supervisor)
 // TODO: Too lazy to template code for each flag rn, will be written on demand
+
+func (f *FlagsRegister) F(ID types.Word32) bool {
+	flagMask := FlagsRegister(1 << ID)
+	return (*f & flagMask) == flagMask
+}
 
 func (f *FlagsRegister) FZ() bool {
 	return (*f & 0b1) == 0b1

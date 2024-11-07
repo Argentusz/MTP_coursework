@@ -16,7 +16,7 @@ func (cpu *CPU) MarshallHuman() {
 
 func (cpu *CPU) marshallHumanXMEM() {
 	fmt.Printf("| %7s | %33s | %35s |\n", "ADDR", "EXE_SEG", "USR_SEG")
-	for i := types.Address(0); i < 5*4; i += 4 {
+	for i := types.Address(0); i < 10*4; i += 4 {
 		exew, erre := cpu.XMEM.At(consts.EXE_SEG).GetWord32(i)
 		usrw, erru := cpu.XMEM.At(consts.USR_SEG).GetWord32(i)
 		if erre != nil {
@@ -26,7 +26,7 @@ func (cpu *CPU) marshallHumanXMEM() {
 			panic(erru.Error())
 		}
 
-		fmt.Printf("| 0x%05x | %027b %05b | %08b %08b %08b %08b |\n", i, exew>>5, exew&0b11111, (usrw>>24)&consts.MAX_WORD8, (usrw>>16)&consts.MAX_WORD8, (usrw>>8)&consts.MAX_WORD8, usrw&consts.MAX_WORD8)
+		fmt.Printf("| 0x%05x | %026b %06b | %08b %08b %08b %08b |\n", i, exew>>6, exew&0b111111, (usrw>>24)&consts.MAX_WORD8, (usrw>>16)&consts.MAX_WORD8, (usrw>>8)&consts.MAX_WORD8, usrw&consts.MAX_WORD8)
 	}
 }
 
@@ -41,7 +41,7 @@ func (cpu *CPU) marshallHumanRRAM() {
 
 	fmt.Printf("| %17s |\n", "SYS")
 	fmt.Printf("---------------------\n")
-	fmt.Printf("| %4s | %10d |\n", "IR", *cpu.RRAM.SYS.IR)
+	fmt.Printf("| %4s | 0x%08x |\n", "IR", *cpu.RRAM.SYS.IR)
 	fmt.Printf("| %4s | %10d |\n", "IRB", *cpu.RRAM.SYS.IRB)
 	fmt.Printf("| %4s | %10d |\n", "MBR", *cpu.RRAM.SYS.MBR)
 	fmt.Printf("| %4s | %10d |\n", "TMP", *cpu.RRAM.SYS.TMP)

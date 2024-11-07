@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/cpu"
 	"github.com/Argentusz/MTP_coursework/pkg/interpreter"
@@ -8,14 +9,18 @@ import (
 )
 
 func main() {
+	const StepByStep = false
 	mtp := cpu.InitCPU()
 
 	var program = []string{
-		"mov rw1 1",
-		"mov rw2 2",
-		"mov rw3 0",
-		"add rw1 rw2",
-		"mov [rw3] rw1",
+		"mov rw1 16",
+		"mov rw2 1",
+		"mov rx1 12",
+		"lbl rx0",
+		"mul rw2 2",
+		"sub rw1 1",
+		"jnz rw1 [rx0]",
+		"mov [rx1] rw2",
 		"halt",
 	}
 
@@ -31,9 +36,14 @@ func main() {
 		}
 	}
 
+	str := ""
 	finished := false
-	for !finished {
+	for !finished && str != ":q" {
 		finished = mtp.Exec()
+		if StepByStep {
+			mtp.MarshallHuman()
+			fmt.Scanln(&str)
+		}
 	}
 
 	mtp.MarshallHuman()

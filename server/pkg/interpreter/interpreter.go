@@ -34,37 +34,43 @@ type commandEntry struct {
 
 var commandsMap = map[string]commandEntry{
 	"skip": {Code: consts.C_SKIP, Params: []types.ParamType{}},
-	"mov":  {Code: consts.C_MOV, Params: []types.ParamType{types.ValueDestinationType, types.ValueSourceType}}, // dest=src
-	"add":  {Code: consts.C_ADD, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest+=src
-	"adc":  {Code: consts.C_ADC, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest+=src+fc
-	"sub":  {Code: consts.C_SUB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest-=src
-	"sbb":  {Code: consts.C_SBB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest-=(src+fc)
-	"mul":  {Code: consts.C_MUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest*=src
-	"div":  {Code: consts.C_DIV, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest/=src
-	"iadd": {Code: consts.C_IADD, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest+=src
-	"iadc": {Code: consts.C_IADC, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest+=src+fc
-	"isub": {Code: consts.C_ISUB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest-=src
-	"isbb": {Code: consts.C_ISBB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest-=(src+fc)
-	"imul": {Code: consts.C_IMUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest*=src (signed)
-	"idiv": {Code: consts.C_IDIV, Params: []types.ParamType{types.RegType, types.ValueSourceType}},             // dest/=src
-	"shl":  {Code: consts.C_SHL, Params: []types.ParamType{types.RegType, types.IntType}},                      // r<<=imm
-	"shr":  {Code: consts.C_SHR, Params: []types.ParamType{types.RegType, types.IntType}},                      // r>>=imm
-	"sar":  {Code: consts.C_SAR, Params: []types.ParamType{types.RegType, types.IntType}},                      // r<<=imm (arithmetic)
-	"and":  {Code: consts.C_AND, Params: []types.ParamType{types.RegType, types.RegType}},                      // ra&=rb
-	"or":   {Code: consts.C_OR, Params: []types.ParamType{types.RegType, types.RegType}},                       // ra|=rb
-	"xor":  {Code: consts.C_XOR, Params: []types.ParamType{types.RegType, types.RegType}},                      // ra^=rb
-	"not":  {Code: consts.C_NOT, Params: []types.ParamType{types.RegType}},                                     // ra=~ra
-	"jmp":  {Code: consts.C_JMP, Params: []types.ParamType{types.AddressType}},
+	"mov":  {Code: consts.C_MOV, Params: []types.ParamType{types.ValueDestinationType, types.ValueSourceType}},  // dest=src
+	"add":  {Code: consts.C_ADD, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest+=src
+	"adc":  {Code: consts.C_ADC, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest+=src+fc
+	"sub":  {Code: consts.C_SUB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest-=src
+	"sbb":  {Code: consts.C_SBB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest-=(src+fc)
+	"mul":  {Code: consts.C_MUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest*=src
+	"div":  {Code: consts.C_DIV, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest/=src
+	"imov": {Code: consts.C_IMOV, Params: []types.ParamType{types.ValueDestinationType, types.ValueSourceType}}, // dest+=src
+	"iadd": {Code: consts.C_IADD, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest+=src
+	"iadc": {Code: consts.C_IADC, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest+=src+fc
+	"isub": {Code: consts.C_ISUB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest-=src
+	"isbb": {Code: consts.C_ISBB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest-=(src+fc)
+	"imul": {Code: consts.C_IMUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest*=src (signed)
+	"idiv": {Code: consts.C_IDIV, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest/=src
+	"addf": {Code: consts.C_ADDF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
+	"subf": {Code: consts.C_SUBF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
+	"mulf": {Code: consts.C_MULF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
+	"divf": {Code: consts.C_DIVF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
+	"shl":  {Code: consts.C_SHL, Params: []types.ParamType{types.RegType, types.IntType}},      // r<<=imm
+	"shr":  {Code: consts.C_SHR, Params: []types.ParamType{types.RegType, types.IntType}},      // r>>=imm
+	"sar":  {Code: consts.C_SAR, Params: []types.ParamType{types.RegType, types.IntType}},      // r<<=imm (arithmetic)
+	"and":  {Code: consts.C_AND, Params: []types.ParamType{types.RegType, types.RegType}},      // ra&=rb
+	"or":   {Code: consts.C_OR, Params: []types.ParamType{types.RegType, types.RegType}},       // ra|=rb
+	"xor":  {Code: consts.C_XOR, Params: []types.ParamType{types.RegType, types.RegType}},      // ra^=rb
+	"not":  {Code: consts.C_NOT, Params: []types.ParamType{types.RegType}},                     // ra=~ra
+	"jmp":  {Code: consts.C_JMP, Params: []types.ParamType{types.AddressType}},                 // goto
+	"jif":  {Code: consts.C_JIF, Params: []types.ParamType{types.FlagType, types.AddressType}}, // if (!flag) goto
+	"jnf":  {Code: consts.C_JNF, Params: []types.ParamType{types.FlagType, types.AddressType}}, // if (flag) goto
+	"jiz":  {Code: consts.C_JIZ, Params: []types.ParamType{types.RegType, types.AddressType}},  // if (!val) goto
+	"jnz":  {Code: consts.C_JNZ, Params: []types.ParamType{types.RegType, types.AddressType}},  // if (val) goto
+	"lbl":  {Code: consts.C_LBL, Params: []types.ParamType{types.RegType}},                     // ra = NIR
 	"call": {Code: consts.C_CALL, Params: []types.ParamType{types.AddressType}},
 	"ret":  {Code: consts.C_RET, Params: []types.ParamType{}},
 	"halt": {Code: consts.C_HALT, Params: []types.ParamType{}},
 	"ei":   {Code: consts.C_EI, Params: []types.ParamType{}},
 	"di":   {Code: consts.C_DI, Params: []types.ParamType{}},
 	"int":  {Code: consts.C_INT, Params: []types.ParamType{types.IntType}},
-	"addf": {Code: consts.C_ADDF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
-	"subf": {Code: consts.C_SUBF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
-	"mulf": {Code: consts.C_MULF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
-	"divf": {Code: consts.C_DIVF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
 }
 
 var flagMap = map[string]types.Word32{
@@ -75,7 +81,6 @@ var flagMap = map[string]types.Word32{
 	"fi": 0b100,
 	"ft": 0b101,
 	"fu": 0b110,
-	"fx": 0b111,
 }
 
 var regMap = map[string]types.Word32{}
@@ -169,6 +174,9 @@ func convertParam(param string, paramType types.ParamType) (types.Word32, error)
 
 	case types.IntType:
 		return convertIntParam(param)
+
+	case types.AddressType:
+		return convertAddressParam(param)
 
 	case types.ValueSourceType:
 		return convertValueSourceType(param)
