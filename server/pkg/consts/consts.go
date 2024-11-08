@@ -19,4 +19,5 @@ const (
 	EXE_SEG types.SegmentID = iota
 	INT_SEG
 	USR_SEG
+	LBL_SEG
 )

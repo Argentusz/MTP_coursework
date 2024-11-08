@@ -16,7 +16,8 @@ type CPU struct {
 func InitCPU() CPU {
 	mem := xmem.InitExternalMemory()
 	_ = mem.NewSegment(consts.EXE_SEG, 1.5*consts.BiGB)
-	_ = mem.NewSegment(consts.INT_SEG, 0.5*consts.BiGB)
+	_ = mem.NewSegment(consts.INT_SEG, consts.BiGB/8)
+	_ = mem.NewSegment(consts.LBL_SEG, 3*consts.BiGB/8)
 	_ = mem.NewSegment(consts.USR_SEG, 2.0*consts.BiGB)
 	return CPU{
 		RRAM: register.InitRRAM(),
@@ -41,6 +42,10 @@ func (cpu *CPU) fetchUsrData(addr types.Address) {
 	cpu.fetch(consts.USR_SEG, addr)
 }
 
+func (cpu *CPU) fetchLabelExeAddr(label types.Address) {
+	cpu.fetch(consts.LBL_SEG, label*4)
+}
+
 func (cpu *CPU) post(segmentID types.SegmentID, addr types.Address, size byte) {
 	var err error
 	switch size {
@@ -61,6 +66,11 @@ func (cpu *CPU) post(segmentID types.SegmentID, addr types.Address, size byte) {
 func (cpu *CPU) postUsrData(addr types.Address, val types.Word32, size byte) {
 	*cpu.RRAM.SYS.MBR = val
 	cpu.post(consts.USR_SEG, addr, size)
+}
+
+func (cpu *CPU) postLabelExeAddr(label types.Address, exeAddr types.Word32) {
+	*cpu.RRAM.SYS.MBR = exeAddr
+	cpu.post(consts.LBL_SEG, label*4, 32)
 }
 
 func (cpu *CPU) Exec() bool {
@@ -146,6 +156,7 @@ func (cpu *CPU) Exec() bool {
 		panic("int is NOI")
 	default:
 		// SIGILL
+		panic("unknown operator")
 		return false
 	}
 

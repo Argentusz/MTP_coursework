@@ -71,6 +71,34 @@ func (cpu *CPU) castAddrToImm(src types.Word32) types.Word32 {
 	return types.Word32(val)
 }
 
+func (cpu *CPU) castJumpToExeAddr(jump types.Word32) types.Word32 {
+	mode := jump & types.JumpModeMask
+	switch mode {
+	case types.JumpAddressMode:
+		val, _ := cpu.RRAM.GetValue(jump & types.JumpInverseMask)
+		return types.Word32(val)
+	case types.JumpLabelMode:
+		cpu.fetchLabelExeAddr(types.Address(jump & types.JumpInverseMask))
+		return *cpu.RRAM.SYS.MBR
+	default:
+		// SIGILL
+		return 0
+	}
+}
+
+func (cpu *CPU) castLabelDstToModeAddr(lblDst types.Word32) (bool, types.Word32) {
+	mode := lblDst & types.LabelModeMask
+	switch mode {
+	case types.LabelIntMode:
+		return false, lblDst & types.LabelInverseMask
+	case types.LabelRegMode:
+		return true, lblDst & types.LabelInverseMask
+	default:
+		// SIGILL
+		return false, 0
+	}
+}
+
 func castValueSign(val types.Value, size byte) types.SValue {
 	var valMask = types.Value((1 << (size - 1)) - 1)
 	var valPure = val & valMask

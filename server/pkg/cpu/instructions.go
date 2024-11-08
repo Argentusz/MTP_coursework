@@ -163,8 +163,8 @@ func (cpu *CPU) xor() {
 }
 
 func (cpu *CPU) jmp() {
-	addr := cpu.getAddr()
-	*cpu.RRAM.SYS.NIR = cpu.castAddrToImm(addr)
+	jump := cpu.getJump()
+	*cpu.RRAM.SYS.NIR = cpu.castJumpToExeAddr(jump)
 	cpu.RRAM.SYS.FLG.Drop()
 }
 
@@ -203,12 +203,19 @@ func (cpu *CPU) jnz() {
 }
 
 func (cpu *CPU) lbl() {
-	regID := cpu.getReg()
-	overflow := cpu.RRAM.PutValue(regID, types.Value(*cpu.RRAM.SYS.NIR))
-	cpu.RRAM.SYS.FLG.Drop()
-	if overflow {
-		cpu.RRAM.SYS.FLG.FCOn()
+	lblDst := cpu.getLabelDestination()
+	isRegister, id := cpu.castLabelDstToModeAddr(lblDst)
+	switch isRegister {
+	case true:
+		overflow := cpu.RRAM.PutValue(id, types.Value(*cpu.RRAM.SYS.NIR))
+		if overflow {
+			cpu.RRAM.SYS.FLG.FCOn()
+		}
+	case false:
+		cpu.postLabelExeAddr(types.Address(id), *cpu.RRAM.SYS.NIR)
 	}
+
+	cpu.RRAM.SYS.FLG.Drop()
 }
 
 func (cpu *CPU) call() {

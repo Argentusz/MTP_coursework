@@ -37,3 +37,11 @@ func (cpu *CPU) getSrc() types.Word32 {
 func (cpu *CPU) getDest() types.Word32 {
 	return cpu.get(types.ValueDestinationTypeSize)
 }
+
+func (cpu *CPU) getJump() types.Word32 {
+	return cpu.get(types.JumpTypeSize)
+}
+
+func (cpu *CPU) getLabelDestination() types.Word32 {
+	return cpu.get(types.LabelDestinationTypeSize)
+}

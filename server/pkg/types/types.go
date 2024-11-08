@@ -20,6 +20,8 @@ const (
 	AddressType          // [rx]
 	ValueSourceType      // RegType OR IntType OR AddressType
 	ValueDestinationType // RegType OR AddressType
+	JumpType             // AddressType OR IntType
+	LabelDestinationType // RegType OR IntType
 )
 
 const OperatorSize = 6
@@ -30,6 +32,8 @@ const (
 	AddressTypeSize          = 6
 	ValueSourceTypeSize      = 18
 	ValueDestinationTypeSize = 7
+	JumpTypeSize             = 17
+	LabelDestinationTypeSize = 17
 )
 
 const (
@@ -45,6 +49,20 @@ const (
 	DestinationAddrMode    = 0b1 << RegTypeSize
 	DestinationModeMask    = 0b1 << RegTypeSize
 	DestinationInverseMask = (0b1 << RegTypeSize) - 1
+)
+
+const (
+	JumpLabelMode   = 0b0 << IntTypeSize
+	JumpAddressMode = 0b1 << IntTypeSize
+	JumpModeMask    = 0b1 << IntTypeSize
+	JumpInverseMask = (0b1 << IntTypeSize) - 1
+)
+
+const (
+	LabelIntMode     = 0b0 << IntTypeSize
+	LabelRegMode     = 0b1 << IntTypeSize
+	LabelModeMask    = 0b1 << IntTypeSize
+	LabelInverseMask = (0b1 << IntTypeSize) - 1
 )
 
 func SizeOfParamType(pt ParamType) int {

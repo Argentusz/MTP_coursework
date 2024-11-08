@@ -52,20 +52,20 @@ var commandsMap = map[string]commandEntry{
 	"subf": {Code: consts.C_SUBF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
 	"mulf": {Code: consts.C_MULF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
 	"divf": {Code: consts.C_DIVF, Params: []types.ParamType{types.RegType, types.ValueSourceType}},
-	"shl":  {Code: consts.C_SHL, Params: []types.ParamType{types.RegType, types.IntType}},      // r<<=imm
-	"shr":  {Code: consts.C_SHR, Params: []types.ParamType{types.RegType, types.IntType}},      // r>>=imm
-	"sar":  {Code: consts.C_SAR, Params: []types.ParamType{types.RegType, types.IntType}},      // r<<=imm (arithmetic)
-	"and":  {Code: consts.C_AND, Params: []types.ParamType{types.RegType, types.RegType}},      // ra&=rb
-	"or":   {Code: consts.C_OR, Params: []types.ParamType{types.RegType, types.RegType}},       // ra|=rb
-	"xor":  {Code: consts.C_XOR, Params: []types.ParamType{types.RegType, types.RegType}},      // ra^=rb
-	"not":  {Code: consts.C_NOT, Params: []types.ParamType{types.RegType}},                     // ra=~ra
-	"jmp":  {Code: consts.C_JMP, Params: []types.ParamType{types.AddressType}},                 // goto
-	"jif":  {Code: consts.C_JIF, Params: []types.ParamType{types.FlagType, types.AddressType}}, // if (!flag) goto
-	"jnf":  {Code: consts.C_JNF, Params: []types.ParamType{types.FlagType, types.AddressType}}, // if (flag) goto
-	"jiz":  {Code: consts.C_JIZ, Params: []types.ParamType{types.RegType, types.AddressType}},  // if (!val) goto
-	"jnz":  {Code: consts.C_JNZ, Params: []types.ParamType{types.RegType, types.AddressType}},  // if (val) goto
-	"lbl":  {Code: consts.C_LBL, Params: []types.ParamType{types.RegType}},                     // ra = NIR
-	"call": {Code: consts.C_CALL, Params: []types.ParamType{types.AddressType}},
+	"shl":  {Code: consts.C_SHL, Params: []types.ParamType{types.RegType, types.IntType}},   // r<<=imm
+	"shr":  {Code: consts.C_SHR, Params: []types.ParamType{types.RegType, types.IntType}},   // r>>=imm
+	"sar":  {Code: consts.C_SAR, Params: []types.ParamType{types.RegType, types.IntType}},   // r<<=imm (arithmetic)
+	"and":  {Code: consts.C_AND, Params: []types.ParamType{types.RegType, types.RegType}},   // ra&=rb
+	"or":   {Code: consts.C_OR, Params: []types.ParamType{types.RegType, types.RegType}},    // ra|=rb
+	"xor":  {Code: consts.C_XOR, Params: []types.ParamType{types.RegType, types.RegType}},   // ra^=rb
+	"not":  {Code: consts.C_NOT, Params: []types.ParamType{types.RegType}},                  // ra=~ra
+	"jmp":  {Code: consts.C_JMP, Params: []types.ParamType{types.JumpType}},                 // goto
+	"jif":  {Code: consts.C_JIF, Params: []types.ParamType{types.FlagType, types.JumpType}}, // if (!flag) goto
+	"jnf":  {Code: consts.C_JNF, Params: []types.ParamType{types.FlagType, types.JumpType}}, // if (flag) goto
+	"jiz":  {Code: consts.C_JIZ, Params: []types.ParamType{types.RegType, types.JumpType}},  // if (!val) goto
+	"jnz":  {Code: consts.C_JNZ, Params: []types.ParamType{types.RegType, types.JumpType}},  // if (val) goto
+	"lbl":  {Code: consts.C_LBL, Params: []types.ParamType{types.LabelDestinationType}},     // lbl = NIR
+	"call": {Code: consts.C_CALL, Params: []types.ParamType{types.JumpType}},
 	"ret":  {Code: consts.C_RET, Params: []types.ParamType{}},
 	"halt": {Code: consts.C_HALT, Params: []types.ParamType{}},
 	"ei":   {Code: consts.C_EI, Params: []types.ParamType{}},
@@ -164,6 +164,53 @@ func convertValueSourceType(param string) (types.Word32, error) {
 	}
 }
 
+func convertValueDestinationType(param string) (types.Word32, error) {
+	var paramRunes = []rune(param)
+	switch {
+	case paramRunes[0] == 'r':
+		return convertRegParam(param)
+
+	case len(paramRunes) > 1 && paramRunes[0] == '[' && paramRunes[len(paramRunes)-1] == ']':
+		sParam := string(paramRunes[1 : len(paramRunes)-1])
+		num, err := convertRegParam(sParam)
+		num |= 0b1 << types.RegTypeSize
+		return num, err
+
+	default:
+		return 0b0, errors.New(fmt.Sprintf("failed to parse param %s into ValueDestinationType", param))
+	}
+}
+
+func convertJumpType(param string) (types.Word32, error) {
+	switch {
+	case isNumType(param):
+		num, err := convertIntParam(param)
+		num |= types.JumpLabelMode
+		return num, err
+	case isAddressType(param):
+		num, err := convertAddressParam(param)
+		num |= types.JumpAddressMode
+		return num, err
+	default:
+		return 0b0, errors.New(fmt.Sprintf("could not convert %s to JumpType", param))
+	}
+}
+
+func convertLabelDestinationType(param string) (types.Word32, error) {
+	switch {
+	case isNumType(param):
+		num, err := convertIntParam(param)
+		num |= types.LabelIntMode
+		return num, err
+	case isRegisterType(param):
+		num, err := convertRegParam(param)
+		num |= types.LabelRegMode
+		return num, err
+	default:
+		return 0b0, errors.New(fmt.Sprintf("could not convert %s to LabelDestinationType", param))
+	}
+}
+
 func convertParam(param string, paramType types.ParamType) (types.Word32, error) {
 	switch paramType {
 	case types.RegType:
@@ -182,20 +229,13 @@ func convertParam(param string, paramType types.ParamType) (types.Word32, error)
 		return convertValueSourceType(param)
 
 	case types.ValueDestinationType:
-		var paramRunes = []rune(param)
-		switch {
-		case paramRunes[0] == 'r':
-			return convertRegParam(param)
+		return convertValueDestinationType(param)
 
-		case len(paramRunes) > 1 && paramRunes[0] == '[' && paramRunes[len(paramRunes)-1] == ']':
-			sParam := string(paramRunes[1 : len(paramRunes)-1])
-			num, err := convertRegParam(sParam)
-			num |= 0b1 << types.RegTypeSize
-			return num, err
+	case types.JumpType:
+		return convertJumpType(param)
 
-		default:
-			return 0b0, errors.New(fmt.Sprintf("failed to parse param %s into ValueDestinationType", param))
-		}
+	case types.LabelDestinationType:
+		return convertLabelDestinationType(param)
 	}
 	return 0b0, errors.New(fmt.Sprintf("unsupported parameter %s with code %d", param, paramType))
 }
