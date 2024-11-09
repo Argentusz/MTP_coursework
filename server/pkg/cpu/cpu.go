@@ -190,11 +190,14 @@ func (cpu *CPU) Tick() bool {
 		cpu.int()
 	default:
 		cpu.SIGILL()
-		panic("unknown operator")
 		return false
 	}
 
 	cpu.InterruptCheck()
+	if !cpu.OUTP.INTA && cpu.RRAM.SYS.FLG.FT() {
+		cpu.SIGTRACE()
+	}
+
 	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.NIR
 	return operator == consts.C_HALT
 }

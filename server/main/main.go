@@ -13,14 +13,14 @@ func main() {
 	mtp := cpu.InitCPU()
 	mtp.InitInterrupts()
 
+	mtp.RRAM.SYS.FLG.FIOn()
+	if StepByStep {
+		mtp.RRAM.SYS.FLG.FTOn()
+	}
+
 	var program = []string{
-		"ei",
-		"mov rh0 0xFFFF",
-		"mov rl0 0xFFF0",
-		"div rx0 0",
-		"add rb0 1",
+		"mov rh0 0xffff",
 		"mov [rx0] 1",
-		"add rb0 1",
 		"halt",
 	}
 
@@ -36,15 +36,40 @@ func main() {
 		}
 	}
 
-	str := ""
-	finished := false
-	for !finished && str != ":q" {
-		finished = mtp.Tick()
-		if StepByStep {
-			mtp.MarshallHuman()
+	for finish := false; !finish; {
+		halted := mtp.Tick()
+		if !halted {
+			continue
+		}
+
+		finish = true
+		mtp.MarshallHuman()
+		if mtp.OUTP.INTA && mtp.OUTP.INTN == consts.SIGTRACE {
+			var str string
 			fmt.Scanln(&str)
+			finish = str == "q"
 		}
 	}
 
-	mtp.MarshallHuman()
+	switch mtp.OUTP.INTN {
+	case consts.SIGNONE:
+		fmt.Println("Program finished successfully")
+	case consts.SIGFPE:
+		fmt.Println("Program interrupted: SIGFPE")
+	case consts.SIGTRACE:
+		fmt.Println("Program interrupted: SIGTRACE")
+	case consts.SIGSEGV:
+		fmt.Println("Program interrupted: SIGSEGV")
+	case consts.SIGTERM:
+		fmt.Println("Program interrupted: SIGTERM")
+	case consts.SIGINT:
+		fmt.Println("Program interrupted: SIGINT")
+	case consts.SIGIIE:
+		fmt.Println("Program interrupted: SIGIIE")
+	case consts.SIGILL:
+		fmt.Println("Program interrupted: SIGILL")
+	default:
+		fmt.Println("Program interrupted with error code", mtp.OUTP.INTN)
+	}
+
 }
