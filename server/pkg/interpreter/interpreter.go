@@ -67,7 +67,7 @@ var commandsMap = map[string]commandEntry{
 	"lbl":  {Code: consts.C_LBL, Params: []types.ParamType{types.LabelDestinationType}},     // lbl = NIR
 	"call": {Code: consts.C_CALL, Params: []types.ParamType{types.JumpType}},
 	"ret":  {Code: consts.C_RET, Params: []types.ParamType{}},
-	"halt": {Code: consts.C_HALT, Params: []types.ParamType{}},
+	"hlt":  {Code: consts.C_HLT, Params: []types.ParamType{}},
 	"ei":   {Code: consts.C_EI, Params: []types.ParamType{}},
 	"di":   {Code: consts.C_DI, Params: []types.ParamType{}},
 	"int":  {Code: consts.C_INT, Params: []types.ParamType{types.IntType}},

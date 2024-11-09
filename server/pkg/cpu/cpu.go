@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/register"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
@@ -26,16 +27,18 @@ func InitCPU() CPU {
 	}
 }
 
+const DefaultHandlersOffset = 21
+
 func (cpu *CPU) InitInterrupts() {
-	maxExeAddr := cpu.XMEM.At(consts.EXE_SEG).GetMaxAddr()
-	defaultHandlers := maxExeAddr - 21
+	cpu.RRAM.SYS.FLG.FIOn()
+	defaultHandlers := cpu.XMEM.At(consts.EXE_SEG).GetMaxAddr() - DefaultHandlersOffset
 
 	// Default ignore exception handler
 	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0x0, consts.C_SKIP)
 	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0x4, consts.C_RET)
 
 	// Default crush/wait exception handler
-	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0x8, consts.C_HALT)
+	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0x8, consts.C_HLT)
 	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0xc, consts.C_RET)
 
 	// Fill default Interrupt Descriptor Table
@@ -108,7 +111,30 @@ func (cpu *CPU) postLabelExeAddr(label types.Address, exeAddr types.Word32) {
 }
 
 func (cpu *CPU) Tick() bool {
+	fmt.Println("Tick")
+	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.NIR
 	*cpu.RRAM.SYS.NIR += 4
+
+	halted := cpu.Exec()
+
+	if cpu.InterruptCheck() {
+		return halted
+	}
+
+	if cpu.RRAM.SYS.FLG.FT() && !cpu.OUTP.INTA {
+		cpu.SIGTRACE()
+		cpu.InterruptCheck()
+		return halted
+	}
+
+	if cpu.OUTP.INTA && cpu.OUTP.INTN == consts.SIGNONE {
+		cpu.OUTP.INTA = false
+	}
+
+	return halted
+}
+
+func (cpu *CPU) Exec() bool {
 	cpu.fetchInstr()
 	operator := cpu.getOperator()
 	switch operator {
@@ -180,24 +206,17 @@ func (cpu *CPU) Tick() bool {
 		cpu.call()
 	case consts.C_RET:
 		cpu.ret()
-	case consts.C_HALT:
-		cpu.skip()
 	case consts.C_EI:
 		cpu.ei()
 	case consts.C_DI:
 		cpu.di()
 	case consts.C_INT:
 		cpu.int()
+	case consts.C_HLT:
+		cpu.skip()
+		return true
 	default:
 		cpu.SIGILL()
-		return false
 	}
-
-	cpu.InterruptCheck()
-	if !cpu.OUTP.INTA && cpu.RRAM.SYS.FLG.FT() {
-		cpu.SIGTRACE()
-	}
-
-	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.NIR
-	return operator == consts.C_HALT
+	return false
 }

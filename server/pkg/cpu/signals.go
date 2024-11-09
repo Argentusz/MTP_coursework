@@ -1,13 +1,14 @@
 package cpu
 
 import (
+	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
 )
 
-func (cpu *CPU) InterruptCheck() {
+func (cpu *CPU) InterruptCheck() bool {
 	if !cpu.OUTP.INT {
-		return
+		return false
 	}
 
 	cpu.fetchIntExeAddr(types.Address(cpu.OUTP.INTN))
@@ -16,6 +17,7 @@ func (cpu *CPU) InterruptCheck() {
 	cpu.OUTP.INTA = true
 	*cpu.RRAM.SYS.NIB = *cpu.RRAM.SYS.NIR
 	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.MBR
+	return true
 }
 
 func (cpu *CPU) setInterrupt(intn byte) {
@@ -32,10 +34,12 @@ func (cpu *CPU) SIGFPE() {
 }
 
 func (cpu *CPU) SIGTRACE() {
+	fmt.Println("[[SIGTRACE]]")
 	cpu.setInterrupt(consts.SIGTRACE)
 }
 
 func (cpu *CPU) SIGSEGV() {
+	fmt.Println("[[SIGSEGV]]")
 	cpu.setInterrupt(consts.SIGSEGV)
 }
 

@@ -297,13 +297,9 @@ func (cpu *CPU) call() {
 }
 
 func (cpu *CPU) ret() {
+	cpu.OUTP.INTN = consts.SIGNONE
 	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.NIB
 	cpu.RRAM.SYS.FLG.Drop()
-	if cpu.OUTP.INTA {
-		cpu.OUTP.INTN = consts.SIGNONE
-		cpu.OUTP.INT = false
-		cpu.OUTP.INTA = false
-	}
 }
 
 func (cpu *CPU) ei() {

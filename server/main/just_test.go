@@ -12,7 +12,7 @@ func TestRandomStuff(t *testing.T) {
 		"ret",
 	}
 	int_finish_mtp := []string{
-		"halt",
+		"hlt",
 		"ret",
 	}
 

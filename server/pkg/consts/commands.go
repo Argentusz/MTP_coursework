@@ -38,8 +38,8 @@ const (
 	C_LBL
 	C_CALL
 	C_RET
-	C_HALT
 	C_EI
 	C_DI
 	C_INT
+	C_HLT = 0o77
 )

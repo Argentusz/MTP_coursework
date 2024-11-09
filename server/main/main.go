@@ -9,19 +9,20 @@ import (
 )
 
 func main() {
-	const StepByStep = false
+	const StepByStep = true
 	mtp := cpu.InitCPU()
 	mtp.InitInterrupts()
-
-	mtp.RRAM.SYS.FLG.FIOn()
 	if StepByStep {
 		mtp.RRAM.SYS.FLG.FTOn()
 	}
 
 	var program = []string{
-		"mov rh0 0xffff",
-		"mov [rx0] 1",
-		"halt",
+		"mov rb0 3",
+		"lbl 1",
+		"sub rb0 1",
+		"jnz rb0 1",
+		"add rb1 1",
+		"int 3",
 	}
 
 	for i, line := range program {
