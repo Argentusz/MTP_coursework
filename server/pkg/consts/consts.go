@@ -21,3 +21,14 @@ const (
 	USR_SEG
 	LBL_SEG
 )
+
+const (
+	SIGNONE  byte = iota
+	SIGFPE        // Erroneous arithmetic operation: IGNORE
+	SIGTRACE      // Breakpoint exception: WAIT
+	SIGSEGV       // Invalid memory access (Segmentation fault/Stack Overflow): CRUSH
+	SIGTERM       // Termination request: CRUSH
+	SIGINT        // External interrupt: CRUSH
+	SIGIIE        // Invalid Instruction: CRUSH
+	SIGILL        // Invalid program: CRUSH
+)

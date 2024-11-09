@@ -12,6 +12,12 @@ func (cpu *CPU) MarshallHuman() {
 
 	fmt.Println("Registers:")
 	cpu.marshallHumanRRAM()
+
+	fmt.Println("Wires:")
+	cpu.marshallHumanOUTP()
+	//
+	//fmt.Println("IDT:")
+	//cpu.marshallHumanIDT()
 }
 
 func (cpu *CPU) marshallHumanXMEM() {
@@ -28,11 +34,24 @@ func (cpu *CPU) marshallHumanXMEM() {
 
 		fmt.Printf("| 0x%05x | %026b %06b | %08b %08b %08b %08b |\n", i, exew>>6, exew&0b111111, (usrw>>24)&consts.MAX_WORD8, (usrw>>16)&consts.MAX_WORD8, (usrw>>8)&consts.MAX_WORD8, usrw&consts.MAX_WORD8)
 	}
+	//fmt.Printf("| %81s |\n", "...")
+	//for i := types.Address(0xfff); i < (0xfff + 32); i += 4 {
+	//	exew, erre := cpu.XMEM.At(consts.EXE_SEG).GetWord32(i)
+	//	usrw, erru := cpu.XMEM.At(consts.USR_SEG).GetWord32(i)
+	//	if erre != nil {
+	//		panic(erre.Error())
+	//	}
+	//	if erru != nil {
+	//		panic(erru.Error())
+	//	}
+	//
+	//	fmt.Printf("| 0x%05x | %026b %06b | %08b %08b %08b %08b |\n", i, exew>>6, exew&0b111111, (usrw>>24)&consts.MAX_WORD8, (usrw>>16)&consts.MAX_WORD8, (usrw>>8)&consts.MAX_WORD8, usrw&consts.MAX_WORD8)
+	//}
 }
 
 // |      SYS |
 // | IR   | 0 |
-// | IRB  | 0 |
+// | NIB  | 0 |
 // | MBR  | 0 |
 // | TMP  | 0 |
 // | FLG  | 0 |
@@ -42,7 +61,7 @@ func (cpu *CPU) marshallHumanRRAM() {
 	fmt.Printf("| %17s |\n", "SYS")
 	fmt.Printf("---------------------\n")
 	fmt.Printf("| %4s | 0x%08x |\n", "IR", *cpu.RRAM.SYS.IR)
-	fmt.Printf("| %4s | %10d |\n", "IRB", *cpu.RRAM.SYS.IRB)
+	fmt.Printf("| %4s | %10d |\n", "NIB", *cpu.RRAM.SYS.NIB)
 	fmt.Printf("| %4s | %10d |\n", "MBR", *cpu.RRAM.SYS.MBR)
 	fmt.Printf("| %4s | %10d |\n", "TMP", *cpu.RRAM.SYS.TMP)
 	fmt.Printf("| %4s |   %08b |\n", "FLG", cpu.RRAM.SYS.FLG)
@@ -60,4 +79,20 @@ func (cpu *CPU) marshallHumanRRAM() {
 		fmt.Printf("| %4s | %10d |\n", fmt.Sprintf("rx%d", i), *cpu.RRAM.XGPRs[i])
 	}
 
+}
+
+func (cpu *CPU) marshallHumanIDT() {
+	for i := types.Address(consts.SIGNONE); i < types.Address(4*consts.SIGILL); i += 4 {
+		intl, err := cpu.XMEM.At(consts.INT_SEG).GetWord32(i)
+		if err != nil {
+			panic(err.Error())
+		}
+
+		fmt.Printf("| 0x%05x | 0x%032x |\n", i, intl)
+	}
+}
+
+func (cpu *CPU) marshallHumanOUTP() {
+	fmt.Printf("INT = %v, INTA = %v, INTN = %v\n",
+		cpu.OUTP.INT, cpu.OUTP.INTA, cpu.OUTP.INTN)
 }

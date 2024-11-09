@@ -11,17 +11,47 @@ import (
 type CPU struct {
 	RRAM register.RRAM
 	XMEM *xmem.ExternalMemory
+	OUTP Outputs
 }
 
 func InitCPU() CPU {
 	mem := xmem.InitExternalMemory()
 	_ = mem.NewSegment(consts.EXE_SEG, 1.5*consts.BiGB)
-	_ = mem.NewSegment(consts.INT_SEG, consts.BiGB/8)
+	_ = mem.NewSegment(consts.USR_SEG, 2.0*consts.BiMB)
+	_ = mem.NewSegment(consts.INT_SEG, 9*consts.BiKB)
 	_ = mem.NewSegment(consts.LBL_SEG, 3*consts.BiGB/8)
-	_ = mem.NewSegment(consts.USR_SEG, 2.0*consts.BiGB)
 	return CPU{
 		RRAM: register.InitRRAM(),
 		XMEM: &mem,
+	}
+}
+
+func (cpu *CPU) InitInterrupts() {
+	maxExeAddr := cpu.XMEM.At(consts.EXE_SEG).GetMaxAddr()
+	defaultHandlers := maxExeAddr - 21
+
+	// Default ignore exception handler
+	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0x0, consts.C_SKIP)
+	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0x4, consts.C_RET)
+
+	// Default crush/wait exception handler
+	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0x8, consts.C_HALT)
+	cpu.XMEM.At(consts.EXE_SEG).SetWord32(defaultHandlers+0xc, consts.C_RET)
+
+	// Fill default Interrupt Descriptor Table
+	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGNONE), types.Word32(defaultHandlers))
+	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGFPE), types.Word32(defaultHandlers))
+
+	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGTRACE), types.Word32(defaultHandlers+0x8))
+	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGSEGV), types.Word32(defaultHandlers+0x8))
+	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGTERM), types.Word32(defaultHandlers+0x8))
+	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGINT), types.Word32(defaultHandlers+0x8))
+	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGIIE), types.Word32(defaultHandlers+0x8))
+	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGILL), types.Word32(defaultHandlers+0x8))
+
+	maxIntAddr := cpu.XMEM.At(consts.INT_SEG).GetMaxAddr()
+	for i := 4*types.Address(consts.SIGILL) + 4; i < maxIntAddr; i += 4 {
+		cpu.XMEM.At(consts.INT_SEG).SetWord32(i, types.Word32(defaultHandlers+0x8))
 	}
 }
 
@@ -29,7 +59,7 @@ func (cpu *CPU) fetch(segmentID types.SegmentID, addr types.Address) {
 	var err error
 	*cpu.RRAM.SYS.MBR, err = cpu.XMEM.At(segmentID).GetWord32(addr)
 	if err != nil {
-		panic("SIGSEGV")
+		cpu.SIGSEGV()
 	}
 }
 
@@ -46,6 +76,10 @@ func (cpu *CPU) fetchLabelExeAddr(label types.Address) {
 	cpu.fetch(consts.LBL_SEG, label*4)
 }
 
+func (cpu *CPU) fetchIntExeAddr(intn types.Address) {
+	cpu.fetch(consts.INT_SEG, intn*4)
+}
+
 func (cpu *CPU) post(segmentID types.SegmentID, addr types.Address, size byte) {
 	var err error
 	switch size {
@@ -59,7 +93,7 @@ func (cpu *CPU) post(segmentID types.SegmentID, addr types.Address, size byte) {
 		err = errors.New("can write only 8, 16 or 32-bit messages")
 	}
 	if err != nil {
-		// SIGSEGV
+		cpu.SIGSEGV()
 	}
 }
 
@@ -73,7 +107,7 @@ func (cpu *CPU) postLabelExeAddr(label types.Address, exeAddr types.Word32) {
 	cpu.post(consts.LBL_SEG, label*4, 32)
 }
 
-func (cpu *CPU) Exec() bool {
+func (cpu *CPU) Tick() bool {
 	*cpu.RRAM.SYS.NIR += 4
 	cpu.fetchInstr()
 	operator := cpu.getOperator()
@@ -153,13 +187,14 @@ func (cpu *CPU) Exec() bool {
 	case consts.C_DI:
 		cpu.di()
 	case consts.C_INT:
-		panic("int is NOI")
+		cpu.int()
 	default:
-		// SIGILL
+		cpu.SIGILL()
 		panic("unknown operator")
 		return false
 	}
 
+	cpu.InterruptCheck()
 	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.NIR
 	return operator == consts.C_HALT
 }

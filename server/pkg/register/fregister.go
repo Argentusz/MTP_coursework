@@ -79,7 +79,7 @@ func (f *FlagsRegister) FUOn() {
 }
 
 func (f *FlagsRegister) Drop() {
-	*f &= 0b00000111
+	*f &= 0b11110000
 }
 
 func (f *FlagsRegister) OnUnsignedOperation(fz, fs, fc bool) {

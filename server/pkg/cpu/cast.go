@@ -17,7 +17,7 @@ func (cpu *CPU) castSrcToImm(src types.Word32) types.Word32 {
 		cpu.fetchUsrData(types.Address(addr))
 		return *cpu.RRAM.SYS.MBR
 	default:
-		// SIGILL
+		cpu.SIGILL()
 		return src
 	}
 }
@@ -32,7 +32,7 @@ func (cpu *CPU) castSrcSize(src types.Word32) byte {
 	case types.SourceAddrMode:
 		return 32
 	default:
-		// SIGILL
+		cpu.SIGILL()
 		return 0
 	}
 }
@@ -48,7 +48,7 @@ func (cpu *CPU) castDstToImm(dst types.Word32) types.Word32 {
 		cpu.fetchUsrData(types.Address(addr))
 		return *cpu.RRAM.SYS.MBR
 	default:
-		// SIGILL
+		cpu.SIGILL()
 		return dst
 	}
 }
@@ -61,13 +61,16 @@ func (cpu *CPU) castDstToModeAddr(dst types.Word32) (bool, types.Word32) {
 	case types.DestinationAddrMode:
 		return false, cpu.castDstToImm(dst & types.DestinationInverseMask)
 	default:
-		// SIGILL
+		cpu.SIGILL()
 		return false, 0
 	}
 }
 
 func (cpu *CPU) castAddrToImm(src types.Word32) types.Word32 {
-	val, _ := cpu.RRAM.GetValue(src)
+	val, err := cpu.RRAM.GetValue(src)
+	if err != nil {
+		cpu.SIGILL()
+	}
 	return types.Word32(val)
 }
 
@@ -75,13 +78,16 @@ func (cpu *CPU) castJumpToExeAddr(jump types.Word32) types.Word32 {
 	mode := jump & types.JumpModeMask
 	switch mode {
 	case types.JumpAddressMode:
-		val, _ := cpu.RRAM.GetValue(jump & types.JumpInverseMask)
+		val, err := cpu.RRAM.GetValue(jump & types.JumpInverseMask)
+		if err != nil {
+			cpu.SIGSEGV()
+		}
 		return types.Word32(val)
 	case types.JumpLabelMode:
 		cpu.fetchLabelExeAddr(types.Address(jump & types.JumpInverseMask))
 		return *cpu.RRAM.SYS.MBR
 	default:
-		// SIGILL
+		cpu.SIGILL()
 		return 0
 	}
 }
@@ -94,7 +100,7 @@ func (cpu *CPU) castLabelDstToModeAddr(lblDst types.Word32) (bool, types.Word32)
 	case types.LabelRegMode:
 		return true, lblDst & types.LabelInverseMask
 	default:
-		// SIGILL
+		cpu.SIGILL()
 		return false, 0
 	}
 }

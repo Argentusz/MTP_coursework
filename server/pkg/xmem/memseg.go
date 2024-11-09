@@ -73,3 +73,7 @@ func (mseg *MemorySegment) SetWord16(addr types.Address, data types.Word16) erro
 	}
 	return nil
 }
+
+func (mseg *MemorySegment) GetMaxAddr() types.Address {
+	return mseg.maxAddr
+}

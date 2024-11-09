@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
 	"unsafe"
 )
@@ -54,7 +55,25 @@ func (cpu *CPU) mul() {
 }
 
 func (cpu *CPU) div() {
-	cpu._umathRS(func(a, b types.Value) types.Value { return a / b })
+	dstRegID := cpu.getReg()
+	source := cpu.getSrc()
+
+	srcVal := types.Value(cpu.castSrcToImm(source))
+	if srcVal == 0 {
+		cpu.SIGFPE()
+		return
+	}
+
+	dstVal, err := cpu.RRAM.GetValue(dstRegID)
+	if err != nil {
+		cpu.SIGILL()
+		return
+	}
+
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	res := dstVal / srcVal
+	overflow := cpu.RRAM.PutValue(dstRegID, res)
+	cpu.RRAM.SYS.FLG.OnUnsignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
 }
 
 func (cpu *CPU) imov() {
@@ -105,7 +124,29 @@ func (cpu *CPU) isbb() {
 }
 
 func (cpu *CPU) idiv() {
-	cpu._imathRS(func(a, b types.SValue) types.SValue { return a / b })
+	dstRegID := cpu.getReg()
+	source := cpu.getSrc()
+
+	srcVal := types.Value(cpu.castSrcToImm(source))
+	dstVal, err := cpu.RRAM.GetValue(dstRegID)
+	if err != nil {
+		cpu.SIGILL()
+		return
+	}
+
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	srcSize := cpu.castSrcSize(source)
+
+	dstSVal := castValueSign(dstVal, dstSize)
+	srcSVal := castValueSign(srcVal, srcSize)
+	if srcSVal == 0 {
+		cpu.SIGFPE()
+		return
+	}
+
+	res := dstSVal / srcSVal
+	overflow := cpu.RRAM.PutValue(dstRegID, castValueUnsign(res, dstSize))
+	cpu.RRAM.SYS.FLG.OnSignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
 }
 
 func (cpu *CPU) imul() {
@@ -125,7 +166,29 @@ func (cpu *CPU) mulf() {
 }
 
 func (cpu *CPU) divf() {
-	cpu._fmathRS(func(a, b float32) float32 { return a / b })
+	dstRegID := cpu.getReg()
+	source := cpu.getSrc()
+
+	srcUVal := types.Value(cpu.castSrcToImm(source))
+	dstUVal, err := cpu.RRAM.GetValue(dstRegID)
+
+	dstVal := *((*float32)(unsafe.Pointer(&dstUVal)))
+	srcVal := *((*float32)(unsafe.Pointer(&srcUVal)))
+	if srcVal == 0 {
+		cpu.SIGFPE()
+		return
+	}
+
+	if err != nil {
+		cpu.SIGILL()
+		return
+	}
+
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	res := dstVal / srcVal
+	resUVal := *((*types.Value)(unsafe.Pointer(&res)))
+	overflow := cpu.RRAM.PutValue(dstRegID, resUVal)
+	cpu.RRAM.SYS.FLG.OnSignedOperation(res == 0, resUVal>>(dstSize-1) == 1, overflow)
 }
 
 func (cpu *CPU) shl() {
@@ -142,7 +205,7 @@ func (cpu *CPU) sar() {
 	dstSize := cpu.RRAM.GetRegSize(dstRegID)
 	dstVal, err := cpu.RRAM.GetValue(dstRegID)
 	if err != nil {
-		// SIGILL
+		cpu.SIGILL()
 		return
 	}
 
@@ -186,7 +249,11 @@ func (cpu *CPU) jnf() {
 
 func (cpu *CPU) jiz() {
 	regID := cpu.getReg()
-	val, _ := cpu.RRAM.GetValue(regID)
+	val, err := cpu.RRAM.GetValue(regID)
+	if err != nil {
+		cpu.SIGILL()
+	}
+
 	if val == 0 {
 		cpu.jmp()
 	}
@@ -195,7 +262,11 @@ func (cpu *CPU) jiz() {
 
 func (cpu *CPU) jnz() {
 	regID := cpu.getReg()
-	val, _ := cpu.RRAM.GetValue(regID)
+	val, err := cpu.RRAM.GetValue(regID)
+	if err != nil {
+		cpu.SIGILL()
+	}
+
 	if val != 0 {
 		cpu.jmp()
 	}
@@ -219,15 +290,20 @@ func (cpu *CPU) lbl() {
 }
 
 func (cpu *CPU) call() {
-	addr := cpu.getAddr()
-	*cpu.RRAM.SYS.IRB = *cpu.RRAM.SYS.IR
-	*cpu.RRAM.SYS.NIR = cpu.castAddrToImm(addr)
+	jump := cpu.getJump()
+	*cpu.RRAM.SYS.NIB = *cpu.RRAM.SYS.NIR
+	*cpu.RRAM.SYS.NIR = cpu.castJumpToExeAddr(jump)
 	cpu.RRAM.SYS.FLG.Drop()
 }
 
 func (cpu *CPU) ret() {
-	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.IRB
+	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.NIB
 	cpu.RRAM.SYS.FLG.Drop()
+	if cpu.OUTP.INTA {
+		cpu.OUTP.INTN = consts.SIGNONE
+		cpu.OUTP.INT = false
+		cpu.OUTP.INTA = false
+	}
 }
 
 func (cpu *CPU) ei() {
@@ -245,12 +321,21 @@ func (cpu *CPU) not() {
 	dstSize := cpu.RRAM.GetRegSize(dstRegID)
 	dstVal, err := cpu.RRAM.GetValue(dstRegID)
 	if err != nil {
-		// SIGILL
+		cpu.SIGILL()
 		return
 	}
 
 	mask := types.Value((1 << dstSize) - 1)
 	cpu.RRAM.PutValue(dstRegID, dstVal^mask)
+}
+
+func (cpu *CPU) int() {
+	if !cpu.RRAM.SYS.FLG.FI() {
+		return
+	}
+
+	cpu.OUTP.INT = true
+	cpu.OUTP.INTN = byte(cpu.getInt())
 }
 
 func (cpu *CPU) _bitRR(fn func(a, b types.Value) types.Value) {
@@ -260,7 +345,7 @@ func (cpu *CPU) _bitRR(fn func(a, b types.Value) types.Value) {
 	dstVal, err1 := cpu.RRAM.GetValue(dstRegID)
 	srcVal, err2 := cpu.RRAM.GetValue(srcRegID)
 	if err1 != nil || err2 != nil {
-		// SIGILL
+		cpu.SIGILL()
 		return
 	}
 
@@ -275,7 +360,7 @@ func (cpu *CPU) _bitRI(fn func(a, b types.Value) types.Value) {
 	immVal := cpu.getInt()
 	dstVal, err := cpu.RRAM.GetValue(dstRegID)
 	if err != nil {
-		// SIGILL
+		cpu.SIGILL()
 		return
 	}
 
@@ -293,7 +378,7 @@ func (cpu *CPU) _umathRS(fn func(a, b types.Value) types.Value) {
 	srcVal := types.Value(cpu.castSrcToImm(source))
 	dstVal, err := cpu.RRAM.GetValue(dstRegID)
 	if err != nil {
-		// SIGILL
+		cpu.SIGILL()
 		return
 	}
 
@@ -310,7 +395,7 @@ func (cpu *CPU) _imathRS(fn func(a, b types.SValue) types.SValue) {
 	srcVal := types.Value(cpu.castSrcToImm(source))
 	dstVal, err := cpu.RRAM.GetValue(dstRegID)
 	if err != nil {
-		// SIGILL
+		cpu.SIGILL()
 		return
 	}
 
@@ -336,7 +421,7 @@ func (cpu *CPU) _fmathRS(fn func(a, b float32) float32) {
 	dstVal := *((*float32)(unsafe.Pointer(&dstUVal)))
 
 	if err != nil {
-		// SIGILL
+		cpu.SIGILL()
 		return
 	}
 
@@ -345,5 +430,4 @@ func (cpu *CPU) _fmathRS(fn func(a, b float32) float32) {
 	resUVal := *((*types.Value)(unsafe.Pointer(&res)))
 	overflow := cpu.RRAM.PutValue(dstRegID, resUVal)
 	cpu.RRAM.SYS.FLG.OnSignedOperation(res == 0, resUVal>>(dstSize-1) == 1, overflow)
-
 }

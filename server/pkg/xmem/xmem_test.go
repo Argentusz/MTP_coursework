@@ -59,7 +59,7 @@ func TestXMem(t *testing.T) {
 	}
 	t.Log("Successfully wrote and read same data")
 
-	var inputData32 types.Word32 = 0b10100101
+	var inputData32 types.Word32 = 0x1007
 	err = xmem.At(testSegment).SetWord32(0b1, inputData32)
 	if err != nil {
 		t.Fatal("Can not write 32")

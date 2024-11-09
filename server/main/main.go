@@ -11,16 +11,16 @@ import (
 func main() {
 	const StepByStep = false
 	mtp := cpu.InitCPU()
+	mtp.InitInterrupts()
 
 	var program = []string{
-		"mov rw2 1",
-		"mov rx1 12",
-		"mov rw1 16",
-		"lbl 1",
-		"mul rw2 2",
-		"sub rw1 1",
-		"jnz rw1 1",
-		"mov [rx1] rw2",
+		"ei",
+		"mov rh0 0xFFFF",
+		"mov rl0 0xFFF0",
+		"div rx0 0",
+		"add rb0 1",
+		"mov [rx0] 1",
+		"add rb0 1",
 		"halt",
 	}
 
@@ -39,7 +39,7 @@ func main() {
 	str := ""
 	finished := false
 	for !finished && str != ":q" {
-		finished = mtp.Exec()
+		finished = mtp.Tick()
 		if StepByStep {
 			mtp.MarshallHuman()
 			fmt.Scanln(&str)
