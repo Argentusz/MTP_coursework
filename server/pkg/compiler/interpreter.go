@@ -1,4 +1,4 @@
-package interpreter
+package compiler
 
 import (
 	"errors"
@@ -241,7 +241,6 @@ func convertParam(param string, paramType types.ParamType) (types.Word32, error)
 }
 
 func Convert(instr string) (types.Word32, error) {
-	//fmt.Println("Converting", instr)
 	command := strings.Split(instr, " ")
 	entry, found := commandsMap[command[0]]
 	if !found {

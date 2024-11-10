@@ -2,39 +2,40 @@ package main
 
 import (
 	"fmt"
+	"github.com/Argentusz/MTP_coursework/pkg/compiler"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/cpu"
-	"github.com/Argentusz/MTP_coursework/pkg/interpreter"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
 )
 
 func main() {
-	const StepByStep = true
+	const StepByStep = false
 	mtp := cpu.InitCPU()
-	mtp.InitInterrupts()
-	if StepByStep {
-		mtp.RRAM.SYS.FLG.FTOn()
-	}
-
-	var program = []string{
-		"mov rb0 3",
+	program, err := compiler.Compile([]string{
+		"mov rb0 10 ; Счётчик",
+		"mov rw1 1",
 		"lbl 1",
-		"sub rb0 1",
+		"; Тело цикла",
+		"mul rw1 2",
+		"sub rb0 1 ; Уменьшаем счётчик",
 		"jnz rb0 1",
 		"add rb1 1",
-		"int 3",
+		"hlt",
+	}, &mtp)
+
+	if err != nil {
+		panic(err.Error())
 	}
 
 	for i, line := range program {
-		compiled, err := interpreter.Convert(line)
+		err = mtp.XMEM.At(consts.EXE_SEG).SetWord32(types.Address(i*4), line)
 		if err != nil {
 			panic(err.Error())
 		}
+	}
 
-		err = mtp.XMEM.At(consts.EXE_SEG).SetWord32(types.Address(i*4), compiled)
-		if err != nil {
-			panic(err.Error())
-		}
+	if StepByStep {
+		mtp.RRAM.SYS.FLG.FTOn()
 	}
 
 	for finish := false; !finish; {

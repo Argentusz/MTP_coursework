@@ -29,6 +29,12 @@ func (cpu *CPU) setInterrupt(intn byte) {
 	cpu.OUTP.INTN = intn
 }
 
+func (cpu *CPU) ForceSIGINT() {
+	cpu.OUTP.INT = true
+	cpu.OUTP.INTA = false
+	cpu.OUTP.INTN = consts.SIGINT
+}
+
 func (cpu *CPU) SIGFPE() {
 	cpu.setInterrupt(consts.SIGFPE)
 }

@@ -21,10 +21,12 @@ func InitCPU() CPU {
 	_ = mem.NewSegment(consts.USR_SEG, 2.0*consts.BiMB)
 	_ = mem.NewSegment(consts.INT_SEG, 9*consts.BiKB)
 	_ = mem.NewSegment(consts.LBL_SEG, 3*consts.BiGB/8)
-	return CPU{
+	cpu := CPU{
 		RRAM: register.InitRRAM(),
 		XMEM: &mem,
 	}
+	cpu.InitInterrupts()
+	return cpu
 }
 
 const DefaultHandlersOffset = 21
