@@ -16,6 +16,8 @@ func (cpu *CPU) InterruptCheck() bool {
 	cpu.OUTP.INTA = true
 	*cpu.RRAM.SYS.NIB = *cpu.RRAM.SYS.NIR
 	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.MBR
+
+	cpu.pushIntCallStack()
 	return true
 }
 

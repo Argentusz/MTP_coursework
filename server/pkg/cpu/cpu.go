@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"errors"
+	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/register"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
@@ -20,6 +21,7 @@ func InitCPU() CPU {
 	_ = mem.NewSegment(consts.USR_SEG, 2.0*consts.BiMB)
 	_ = mem.NewSegment(consts.INT_SEG, 9*consts.BiKB)
 	_ = mem.NewSegment(consts.LBL_SEG, 3*consts.BiGB/8)
+	_ = mem.NewSegment(consts.CLL_SEG, 3*consts.BiGB/8)
 	cpu := CPU{
 		RRAM: register.InitRRAM(),
 		XMEM: &mem,
@@ -63,6 +65,7 @@ func (cpu *CPU) fetch(segmentID types.SegmentID, addr types.Address) {
 	var err error
 	*cpu.RRAM.SYS.MBR, err = cpu.XMEM.At(segmentID).GetWord32(addr)
 	if err != nil {
+		fmt.Println("[ERROR]", err.Error())
 		cpu.SIGSEGV()
 	}
 }
@@ -82,6 +85,11 @@ func (cpu *CPU) fetchLabelExeAddr(label types.Address) {
 
 func (cpu *CPU) fetchIntExeAddr(intn types.Address) {
 	cpu.fetch(consts.INT_SEG, intn*4)
+}
+
+func (cpu *CPU) popCallStack() {
+	*cpu.RRAM.SYS.CSP -= 4
+	cpu.fetch(consts.CLL_SEG, types.Address(*cpu.RRAM.SYS.CSP))
 }
 
 func (cpu *CPU) post(segmentID types.SegmentID, addr types.Address, size byte) {
@@ -111,6 +119,18 @@ func (cpu *CPU) postLabelExeAddr(label types.Address, exeAddr types.Word32) {
 	cpu.post(consts.LBL_SEG, label*4, 32)
 }
 
+func (cpu *CPU) pushCallStack() {
+	*cpu.RRAM.SYS.MBR = *cpu.RRAM.SYS.NIR
+	cpu.post(consts.CLL_SEG, types.Address(*cpu.RRAM.SYS.CSP), 32)
+	*cpu.RRAM.SYS.CSP += 4
+}
+
+func (cpu *CPU) pushIntCallStack() {
+	*cpu.RRAM.SYS.MBR = consts.MAX_WORD32
+	cpu.post(consts.CLL_SEG, types.Address(*cpu.RRAM.SYS.CSP), 32)
+	*cpu.RRAM.SYS.CSP += 4
+}
+
 func (cpu *CPU) DeclareLabel(label types.Address, exeAddr types.Word32) error {
 	return cpu.XMEM.At(consts.LBL_SEG).SetWord32(label*4, exeAddr)
 }
@@ -125,11 +145,16 @@ func (cpu *CPU) Tick() bool {
 
 	halted := cpu.Exec()
 
+	if cpu.OUTP.TERM {
+		// SIGINT --force
+	}
+
 	if cpu.InterruptCheck() {
 		return halted
 	}
 
-	if cpu.RRAM.SYS.FLG.FT() && !halted && !cpu.OUTP.INTA && *cpu.RRAM.SYS.NIB == 0 {
+	//fmt.Println("Tick trying to SIGTRACE", )
+	if cpu.RRAM.SYS.FLG.FT() && !halted && !cpu.OUTP.INTA {
 		cpu.SIGTRACE()
 		cpu.InterruptCheck()
 		return halted

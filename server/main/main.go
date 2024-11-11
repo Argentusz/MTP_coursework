@@ -6,6 +6,7 @@ import (
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/cpu"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
+	"time"
 )
 
 func main() {
@@ -14,9 +15,9 @@ func main() {
 	compiled, err := compiler.Compile([]string{
 		"; Программа для нахождения всех делителей числа",
 		"#start $main",
-		"$define $input 4 ; Исходное число",
+		"$define $input 18 ; Исходное число",
 		"$define $write 1",
-		"$define $just_test 2",
+		"$define $inner 2",
 		"$define $for 3",
 		"$define $repeat jnz rx2 $for",
 		"",
@@ -24,7 +25,14 @@ func main() {
 		"@label $write ; Запись делителя rx1 числа rx0",
 		"    mov [rw0] rx1",
 		"    add rw0 4",
+		"    int $sigfpe",
+		"    call $inner",
 		"    ret",
+		"",
+		"",
+		"@label $inner",
+		"    add rw11 1",
+		"	 ret",
 		"",
 		"",
 		"@label $main",
@@ -32,7 +40,6 @@ func main() {
 		"    mov rw0 0 ; Адрес результата",
 		"    ",
 		"    lbl $for",
-		"    int $sigtrace",
 		"    add rx1 1",
 		"    mov rx2 rx0",
 		"    rmd rx2 rx1",
@@ -46,21 +53,12 @@ func main() {
 		"    #mov32 rx1 $m32",
 		"    mov [rw0] rx1",
 		"    ",
-		"    call $just_test",
-		"    ",
 		"    hlt",
 		"",
 		"",
-		"@label $just_test",
-		"    #mov32 rw0 f1.5",
-		"    #mov32 rw1 f2.3",
-		"    addf rw0 rw1",
+		"@ilabel $sigfpe",
+		"    add rw10 1",
 		"    ret",
-		"",
-		"",
-		//"@ilabel $sigtrace",
-		//"    add rw10 1",
-		//"    ret",
 		"",
 	})
 
@@ -71,6 +69,40 @@ func main() {
 	program := compiled.Output
 	labels := compiled.Labels
 	ilabels := compiled.ILabels
+
+	marshallExeSeg := func() {
+		for i, v := range compiled.Input {
+			if int(*mtp.RRAM.SYS.NIB) == i*4 {
+				fmt.Print("[*] ")
+			} else {
+				fmt.Print("    ")
+			}
+
+			f1 := false
+			for label, addr := range compiled.Labels {
+				if int(addr) == i*4 {
+					fmt.Printf("<0x%04x>: ", label)
+					f1 = true
+					break
+				}
+			}
+
+			f2 := false
+			for ilabel, addr := range compiled.ILabels {
+				if int(addr) == i*4 {
+					fmt.Printf("{0x%04x}: ", ilabel)
+					f2 = true
+					break
+				}
+			}
+
+			if !f1 && !f2 {
+				fmt.Print("          ")
+			}
+
+			fmt.Println(v)
+		}
+	}
 
 	for i, line := range program {
 		err = mtp.XMEM.At(consts.EXE_SEG).SetWord32(types.Address(i*4), line)
@@ -97,7 +129,13 @@ func main() {
 		mtp.RRAM.SYS.FLG.FTOn()
 	}
 
-	for finish := false; !finish; {
+	mtp.MarshallHuman()
+	marshallExeSeg()
+
+	var str string
+	fmt.Scanln(&str)
+
+	for finish := str == "q"; !finish; {
 		halted := mtp.Tick()
 		if !halted {
 			continue
@@ -105,10 +143,12 @@ func main() {
 
 		finish = true
 		mtp.MarshallHuman()
+		marshallExeSeg()
 		if mtp.OUTP.INTA && mtp.OUTP.INTN == consts.SIGTRACE {
-			var str string
-			fmt.Scanln(&str)
-			finish = str == "q"
+			time.Sleep(250 * time.Millisecond)
+			finish = false
+			//fmt.Scanln(&str)
+			//finish = str == "q"
 		}
 	}
 

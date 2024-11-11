@@ -33,6 +33,7 @@ type SysRegisters struct {
 	NIR  Register      // Next Instruction			  - Holds memory address of next instruction
 	NIB  Register      // Next Instruction Backup     - For backuping NIR before interrupt handling
 	MBR  Register      // Memory Buffer Register      - For buffering data from External Memory
+	CSP  Register      // Call Stack Pointer
 	TMP  Register      // Temporal storage of instruction code
 	FLG  FlagsRegister // 8-bit flag register (see FlagsRegister)
 	FLGI FlagsRegister // Flag register backup
@@ -50,12 +51,13 @@ type RRAM struct {
 func InitRRAM() RRAM {
 	var rram RRAM
 
-	var ir, nib, nir, mbr, tmp types.Word32
+	var ir, nib, nir, mbr, csp, tmp types.Word32
 
 	rram.SYS.IR = &ir
 	rram.SYS.NIB = &nib
 	rram.SYS.NIR = &nir
 	rram.SYS.MBR = &mbr
+	rram.SYS.CSP = &csp
 	rram.SYS.TMP = &tmp
 	rram.SYS.FLG = 0b0
 	rram.SYS.FLGI = 0b0
