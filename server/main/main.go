@@ -9,12 +9,12 @@ import (
 )
 
 func main() {
-	const StepByStep = false
+	const StepByStep = true
 	mtp := cpu.InitCPU()
 	compiled, err := compiler.Compile([]string{
 		"; Программа для нахождения всех делителей числа",
 		"#start $main",
-		"$define $input 256",
+		"$define $input 4 ; Исходное число",
 		"$define $write 1",
 		"$define $just_test 2",
 		"$define $for 3",
@@ -28,8 +28,8 @@ func main() {
 		"",
 		"",
 		"@label $main",
-		"    #mov32 rx0 $input   ; Исходное число",
-		"    mov rw0 0           ; Адрес результата",
+		"    #mov32 rx0 $input",
+		"    mov rw0 0 ; Адрес результата",
 		"    ",
 		"    lbl $for",
 		"    int $sigtrace",
@@ -58,9 +58,9 @@ func main() {
 		"    ret",
 		"",
 		"",
-		"@ilabel $sigtrace",
-		"    add rw10 1",
-		"    ret",
+		//"@ilabel $sigtrace",
+		//"    add rw10 1",
+		//"    ret",
 		"",
 	})
 

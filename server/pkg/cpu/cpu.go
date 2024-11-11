@@ -129,7 +129,7 @@ func (cpu *CPU) Tick() bool {
 		return halted
 	}
 
-	if cpu.RRAM.SYS.FLG.FT() && !cpu.OUTP.INTA {
+	if cpu.RRAM.SYS.FLG.FT() && !halted && !cpu.OUTP.INTA && *cpu.RRAM.SYS.NIB == 0 {
 		cpu.SIGTRACE()
 		cpu.InterruptCheck()
 		return halted

@@ -321,6 +321,7 @@ func (cpu *CPU) call() {
 func (cpu *CPU) ret() {
 	cpu.OUTP.INTN = consts.SIGNONE
 	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.NIB
+	*cpu.RRAM.SYS.NIB = 0
 	cpu.RRAM.SYS.FLG.Drop()
 }
 
