@@ -1,7 +1,6 @@
 package cpu
 
 import (
-	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
 )
@@ -40,12 +39,10 @@ func (cpu *CPU) SIGFPE() {
 }
 
 func (cpu *CPU) SIGTRACE() {
-	fmt.Println("[[SIGTRACE]]")
 	cpu.setInterrupt(consts.SIGTRACE)
 }
 
 func (cpu *CPU) SIGSEGV() {
-	fmt.Println("[[SIGSEGV]]")
 	cpu.setInterrupt(consts.SIGSEGV)
 }
 
