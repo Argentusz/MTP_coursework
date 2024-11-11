@@ -20,6 +20,7 @@ const (
 	INT_SEG
 	USR_SEG
 	LBL_SEG
+	CLL_SEG
 )
 
 const (

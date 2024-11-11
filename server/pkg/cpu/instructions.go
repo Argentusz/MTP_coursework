@@ -312,16 +312,24 @@ func (cpu *CPU) lbl() {
 }
 
 func (cpu *CPU) call() {
+	*cpu.RRAM.SYS.MBR = *cpu.RRAM.SYS.NIR
+	cpu.pushCallStack()
+
 	jump := cpu.getJump()
-	*cpu.RRAM.SYS.NIB = *cpu.RRAM.SYS.NIR
 	*cpu.RRAM.SYS.NIR = cpu.castJumpToExeAddr(jump)
+
 	cpu.RRAM.SYS.FLG.Drop()
 }
 
 func (cpu *CPU) ret() {
-	cpu.OUTP.INTN = consts.SIGNONE
-	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.NIB
-	*cpu.RRAM.SYS.NIB = 0
+	cpu.popCallStack()
+	switch *cpu.RRAM.SYS.MBR == consts.MAX_WORD32 {
+	case true:
+		*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.NIB
+		cpu.OUTP.INTN = consts.SIGNONE
+	case false:
+		*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.MBR
+	}
 	cpu.RRAM.SYS.FLG.Drop()
 }
 

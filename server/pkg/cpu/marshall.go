@@ -34,28 +34,8 @@ func (cpu *CPU) marshallHumanXMEM() {
 
 		fmt.Printf("| 0x%05x | %026b %06b | %08b %08b %08b %08b |\n", i, exew>>6, exew&0b111111, (usrw>>24)&consts.MAX_WORD8, (usrw>>16)&consts.MAX_WORD8, (usrw>>8)&consts.MAX_WORD8, usrw&consts.MAX_WORD8)
 	}
-	//fmt.Printf("| %81s |\n", "...")
-	//for i := types.Address(0xfff); i < (0xfff + 32); i += 4 {
-	//	exew, erre := cpu.XMEM.At(consts.EXE_SEG).GetWord32(i)
-	//	usrw, erru := cpu.XMEM.At(consts.USR_SEG).GetWord32(i)
-	//	if erre != nil {
-	//		panic(erre.Error())
-	//	}
-	//	if erru != nil {
-	//		panic(erru.Error())
-	//	}
-	//
-	//	fmt.Printf("| 0x%05x | %026b %06b | %08b %08b %08b %08b |\n", i, exew>>6, exew&0b111111, (usrw>>24)&consts.MAX_WORD8, (usrw>>16)&consts.MAX_WORD8, (usrw>>8)&consts.MAX_WORD8, usrw&consts.MAX_WORD8)
-	//}
 }
 
-// |      SYS |
-// | IR   | 0 |
-// | NIB  | 0 |
-// | MBR  | 0 |
-// | TMP  | 0 |
-// | FLG  | 0 |
-// | FLGI | 0 |
 func (cpu *CPU) marshallHumanRRAM() {
 
 	fmt.Printf("| %17s |\n", "SYS")
