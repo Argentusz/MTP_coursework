@@ -2,7 +2,6 @@ package cpu
 
 import (
 	"errors"
-	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/register"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
@@ -112,8 +111,15 @@ func (cpu *CPU) postLabelExeAddr(label types.Address, exeAddr types.Word32) {
 	cpu.post(consts.LBL_SEG, label*4, 32)
 }
 
+func (cpu *CPU) DeclareLabel(label types.Address, exeAddr types.Word32) error {
+	return cpu.XMEM.At(consts.LBL_SEG).SetWord32(label*4, exeAddr)
+}
+
+func (cpu *CPU) DeclareILabel(ilabel types.Address, exeAddr types.Word32) error {
+	return cpu.XMEM.At(consts.INT_SEG).SetWord32(ilabel*4, exeAddr)
+}
+
 func (cpu *CPU) Tick() bool {
-	fmt.Println("Tick")
 	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.NIR
 	*cpu.RRAM.SYS.NIR += 4
 
@@ -156,6 +162,8 @@ func (cpu *CPU) Exec() bool {
 		cpu.mul()
 	case consts.C_DIV:
 		cpu.div()
+	case consts.C_RMD:
+		cpu.rmd()
 	case consts.C_IMOV:
 		cpu.imov()
 	case consts.C_IADD:

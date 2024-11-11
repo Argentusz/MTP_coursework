@@ -12,6 +12,7 @@ const (
 	C_SBB
 	C_MUL
 	C_DIV
+	C_RMD
 	C_IMOV
 	C_IADD
 	C_IADC

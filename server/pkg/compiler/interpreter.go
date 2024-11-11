@@ -41,6 +41,7 @@ var commandsMap = map[string]commandEntry{
 	"sbb":  {Code: consts.C_SBB, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest-=(src+fc)
 	"mul":  {Code: consts.C_MUL, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest*=src
 	"div":  {Code: consts.C_DIV, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest/=src
+	"rmd":  {Code: consts.C_RMD, Params: []types.ParamType{types.RegType, types.ValueSourceType}},               // dest/=src
 	"imov": {Code: consts.C_IMOV, Params: []types.ParamType{types.ValueDestinationType, types.ValueSourceType}}, // dest+=src
 	"iadd": {Code: consts.C_IADD, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest+=src
 	"iadc": {Code: consts.C_IADC, Params: []types.ParamType{types.RegType, types.ValueSourceType}},              // dest+=src+fc
@@ -253,20 +254,15 @@ func Convert(instr string) (types.Word32, error) {
 
 	var cmd types.Word32
 	cmd = entry.Code
-	//fmt.Printf("Command code: %05b\n\n", cmd)
 	var shift = types.OperatorSize
 	for i := 0; i < len(entry.Params); i++ {
-		//fmt.Println("Converting param: ", command[i+1])
 		param, err := convertParam(command[i+1], entry.Params[i])
-		//fmt.Printf(fmt.Sprintf("param code: %%0%db\n", types.SizeOfParamType(entry.Params[i])), param)
 		if err != nil {
 			return 0b0, err
 		}
 
 		cmd |= param << shift
-		//fmt.Printf("Resulting in cmd: %032b\n", cmd)
 		shift += types.SizeOfParamType(entry.Params[i])
-		//fmt.Println()
 	}
 
 	if shift > 32 {

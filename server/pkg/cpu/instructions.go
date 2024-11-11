@@ -76,6 +76,28 @@ func (cpu *CPU) div() {
 	cpu.RRAM.SYS.FLG.OnUnsignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
 }
 
+func (cpu *CPU) rmd() {
+	dstRegID := cpu.getReg()
+	source := cpu.getSrc()
+
+	srcVal := types.Value(cpu.castSrcToImm(source))
+	if srcVal == 0 {
+		cpu.SIGFPE()
+		return
+	}
+
+	dstVal, err := cpu.RRAM.GetValue(dstRegID)
+	if err != nil {
+		cpu.SIGILL()
+		return
+	}
+
+	dstSize := cpu.RRAM.GetRegSize(dstRegID)
+	res := dstVal % srcVal
+	overflow := cpu.RRAM.PutValue(dstRegID, res)
+	cpu.RRAM.SYS.FLG.OnUnsignedOperation(res == 0, res>>(dstSize-1) == 1, overflow)
+}
+
 func (cpu *CPU) imov() {
 	dst := cpu.getDest()
 	src := cpu.getSrc()
