@@ -19,7 +19,7 @@ func InitCPU() CPU {
 	mem := xmem.InitExternalMemory()
 	_ = mem.NewSegment(consts.EXE_SEG, 1.5*consts.BiGB)
 	_ = mem.NewSegment(consts.USR_SEG, 2.0*consts.BiMB)
-	_ = mem.NewSegment(consts.INT_SEG, 9*consts.BiKB)
+	_ = mem.NewSegment(consts.INT_SEG, consts.BiKB)
 	_ = mem.NewSegment(consts.LBL_SEG, 3*consts.BiGB/8)
 	_ = mem.NewSegment(consts.CLL_SEG, 3*consts.BiGB/8)
 	cpu := CPU{
@@ -55,10 +55,10 @@ func (cpu *CPU) InitInterrupts() {
 	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGIIE), types.Word32(defaultHandlers+0x8))
 	cpu.XMEM.At(consts.INT_SEG).SetWord32(4*types.Address(consts.SIGILL), types.Word32(defaultHandlers+0x8))
 
-	maxIntAddr := cpu.XMEM.At(consts.INT_SEG).GetMaxAddr()
-	for i := 4*types.Address(consts.SIGILL) + 4; i < maxIntAddr; i += 4 {
-		cpu.XMEM.At(consts.INT_SEG).SetWord32(i, types.Word32(defaultHandlers+0x8))
-	}
+	//maxIntAddr := cpu.XMEM.At(consts.INT_SEG).GetMaxAddr()
+	//for i := 4*types.Address(consts.SIGILL) + 4; i < maxIntAddr; i += 4 {
+	//	cpu.XMEM.At(consts.INT_SEG).SetWord32(i, types.Word32(defaultHandlers+0x8))
+	//}
 }
 
 func (cpu *CPU) fetch(segmentID types.SegmentID, addr types.Address) {
@@ -146,7 +146,8 @@ func (cpu *CPU) Tick() bool {
 	halted := cpu.Exec()
 
 	if cpu.OUTP.TERM {
-		// SIGINT --force
+		cpu.ForceSIGINT()
+		return true
 	}
 
 	if cpu.InterruptCheck() {

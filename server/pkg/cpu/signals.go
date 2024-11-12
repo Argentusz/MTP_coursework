@@ -14,8 +14,12 @@ func (cpu *CPU) InterruptCheck() bool {
 
 	cpu.OUTP.INT = false
 	cpu.OUTP.INTA = true
+
 	*cpu.RRAM.SYS.NIB = *cpu.RRAM.SYS.NIR
+	cpu.RRAM.SYS.FLB = cpu.RRAM.SYS.FLG
+
 	*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.MBR
+	cpu.RRAM.SYS.FLG = 0b0
 
 	cpu.pushIntCallStack()
 	return true
@@ -32,7 +36,7 @@ func (cpu *CPU) setInterrupt(intn byte) {
 
 func (cpu *CPU) ForceSIGINT() {
 	cpu.OUTP.INT = true
-	cpu.OUTP.INTA = false
+	cpu.OUTP.INTA = true
 	cpu.OUTP.INTN = consts.SIGINT
 }
 
