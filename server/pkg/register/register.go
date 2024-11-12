@@ -29,14 +29,14 @@ const (
 
 // SysRegisters is a set of registers that are not accessible directly for user
 type SysRegisters struct {
-	IR   Register      // Instruction Register        - Holds memory address of current instruction
-	NIR  Register      // Next Instruction			  - Holds memory address of next instruction
-	NIB  Register      // Next Instruction Backup     - For backuping NIR before interrupt handling
-	MBR  Register      // Memory Buffer Register      - For buffering data from External Memory
-	CSP  Register      // Call Stack Pointer
-	TMP  Register      // Temporal storage of instruction code
-	FLG  FlagsRegister // 8-bit flag register (see FlagsRegister)
-	FLGI FlagsRegister // Flag register backup
+	IR  Register      // Instruction Register        - Holds memory address of current instruction
+	NIR Register      // Next Instruction			  - Holds memory address of next instruction
+	NIB Register      // Next Instruction Backup     - For backuping NIR before interrupt handling
+	MBR Register      // Memory Buffer Register      - For buffering data from External Memory
+	CSP Register      // Call Stack Pointer
+	TMP Register      // Temporal storage of instruction code
+	FLG FlagsRegister // 8-bit flag register (see FlagsRegister)
+	FLB FlagsRegister // Flag register backup
 }
 
 type RRAM struct {
@@ -60,7 +60,7 @@ func InitRRAM() RRAM {
 	rram.SYS.CSP = &csp
 	rram.SYS.TMP = &tmp
 	rram.SYS.FLG = 0b0
-	rram.SYS.FLGI = 0b0
+	rram.SYS.FLB = 0b0
 
 	for i := 0; i < SGPRC; i++ {
 		var data types.Word8

@@ -326,6 +326,11 @@ func (cpu *CPU) ret() {
 	switch *cpu.RRAM.SYS.MBR == consts.MAX_WORD32 {
 	case true:
 		*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.NIB
+		cpu.RRAM.SYS.FLG = cpu.RRAM.SYS.FLB
+
+		*cpu.RRAM.SYS.NIB = 0
+		cpu.RRAM.SYS.FLB = 0
+
 		cpu.OUTP.INTN = consts.SIGNONE
 	case false:
 		*cpu.RRAM.SYS.NIR = *cpu.RRAM.SYS.MBR

@@ -8,6 +8,7 @@ import (
 type Compiler struct {
 	Input    []string
 	Output   []types.Word32
+	Aliases  map[string]string
 	Labels   map[int64]types.Word32
 	ILabels  map[int64]types.Word32
 	Warnings []error
@@ -70,9 +71,10 @@ func (cmp *Compiler) prepareStage() error {
 }
 
 func (cmp *Compiler) aliasStage() error {
+	cmp.setDefaultAliases()
 	for i, v := range cmp.Input {
 		if strings.Contains(v, "$") {
-			line, err := deAlias(v)
+			line, err := cmp.deAlias(v)
 			if err != nil {
 				return err
 			}
@@ -149,7 +151,7 @@ func prepLine(line string) string {
 		line = line[:commentIdx]
 	}
 
-	line = strings.Trim(line, " \t\n")
+	line = strings.Trim(line, " \t\n\r")
 	for strings.Contains(line, "  ") {
 		line = strings.ReplaceAll(line, "  ", " ")
 	}

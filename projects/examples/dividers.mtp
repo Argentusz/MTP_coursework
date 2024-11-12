@@ -1,0 +1,35 @@
+; Программа для нахождения всех делителей числа
+#start $main
+    ; Константы ;
+    $define $input 18 ; Исходное число
+    ; Лэйблы ;
+    $define $write 1
+    $define $for 3
+    ; Сокращения ;
+    $define $repeat jnz rx2 $for
+
+
+@label $write ; Запись делителя rx1 числа rx0
+    mov [rw0] rx1
+    add rw0 4
+    ret
+
+@label $main
+    #mov32 rx0 $input
+    mov rw0 0 ; Адрес результата
+
+    lbl $for
+        add rx1 1
+        mov rx2 rx0
+        rmd rx2 rx1
+        $repeat
+        call $write
+        mov rx2 rx0
+        mov rx3 rx1
+        sub rx2 rx3
+        $repeat
+
+    #mov32 rx1 $m32
+    mov [rw0] rx1
+
+    hlt

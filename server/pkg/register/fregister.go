@@ -70,12 +70,20 @@ func (f *FlagsRegister) FTOn() {
 	*f |= 0b100000
 }
 
+func (f *FlagsRegister) FTOff() {
+	*f &= 0b11011111
+}
+
 func (f *FlagsRegister) FU() bool {
 	return (*f & 0b1000000) == 0b1000000
 }
 
 func (f *FlagsRegister) FUOn() {
 	*f |= 0b1000000
+}
+
+func (f *FlagsRegister) FUOff() {
+	*f &= 0b10111111
 }
 
 func (f *FlagsRegister) Drop() {

@@ -7,25 +7,28 @@ import (
 	"strings"
 )
 
-var aliases = map[string]string{
-	"$main":     "0",
-	"$signone":  fmt.Sprint(consts.SIGNONE),
-	"$sigfpe":   fmt.Sprint(consts.SIGFPE),
-	"$sigtrace": fmt.Sprint(consts.SIGTRACE),
-	"$sigsegv":  fmt.Sprint(consts.SIGSEGV),
-	"$sigterm":  fmt.Sprint(consts.SIGTERM),
-	"$sigint":   fmt.Sprint(consts.SIGINT),
-	"$sigiie":   fmt.Sprint(consts.SIGIIE),
-	"$sigill":   fmt.Sprint(consts.SIGILL),
-	"$m8":       fmt.Sprint(consts.MAX_WORD8),
-	"$m16":      fmt.Sprint(consts.MAX_WORD16),
-	"$m32":      fmt.Sprint(consts.MAX_WORD32),
+func (cmp *Compiler) setDefaultAliases() {
+	cmp.Aliases = map[string]string{
+		"$define":   "",
+		"$main":     "0",
+		"$signone":  fmt.Sprint(consts.SIGNONE),
+		"$sigfpe":   fmt.Sprint(consts.SIGFPE),
+		"$sigtrace": fmt.Sprint(consts.SIGTRACE),
+		"$sigsegv":  fmt.Sprint(consts.SIGSEGV),
+		"$sigterm":  fmt.Sprint(consts.SIGTERM),
+		"$sigint":   fmt.Sprint(consts.SIGINT),
+		"$sigiie":   fmt.Sprint(consts.SIGIIE),
+		"$sigill":   fmt.Sprint(consts.SIGILL),
+		"$m8":       fmt.Sprint(consts.MAX_WORD8),
+		"$m16":      fmt.Sprint(consts.MAX_WORD16),
+		"$m32":      fmt.Sprint(consts.MAX_WORD32),
+	}
 }
 
-func deAlias(line string) (string, error) {
-	line = strings.ToLower(line)
+func (cmp *Compiler) deAlias(line string) (string, error) {
+	line = prepLine(line)
 	if strings.HasPrefix(line, "$define") {
-		return "", define(prepLine(line))
+		return "", cmp.define(line)
 	}
 
 	cmd := strings.Split(line, " ")
@@ -36,7 +39,7 @@ func deAlias(line string) (string, error) {
 		case false:
 			dealiased = fmt.Sprintf("%s %s", dealiased, v)
 		case true:
-			app, found := aliases[v]
+			app, found := cmp.Aliases[v]
 			if !found {
 				return "", errors.New(fmt.Sprintf("alias \"%s\" not found", v))
 			}
@@ -48,7 +51,7 @@ func deAlias(line string) (string, error) {
 	return strings.Trim(dealiased, " "), nil
 }
 
-func define(line string) error {
+func (cmp *Compiler) define(line string) error {
 	cmd := strings.SplitN(line, " ", 3)
 
 	if len(cmd) != 3 {
@@ -64,7 +67,7 @@ func define(line string) error {
 	}
 
 	var err error
-	cmd[2], err = deAlias(cmd[2])
+	cmd[2], err = cmp.deAlias(cmd[2])
 	if err != nil {
 		return err
 	}
@@ -73,11 +76,11 @@ func define(line string) error {
 		return errors.New("can not alias empty string nor define a define")
 	}
 
-	_, found := aliases[cmd[1]]
+	_, found := cmp.Aliases[cmd[1]]
 	if found {
 		return errors.New(fmt.Sprintf("can not overwrite alias \"%s\"", cmd[1]))
 	}
 
-	aliases[cmd[1]] = cmd[2]
+	cmp.Aliases[cmd[1]] = cmd[2]
 	return nil
 }
