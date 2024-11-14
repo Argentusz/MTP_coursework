@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/supervisor"
+	"log"
 	"os"
 	"strings"
 )
@@ -37,6 +38,8 @@ func main() {
 		fmt.Println(str)
 	}
 
+	onChange()
+
 	stdin := bufio.NewReader(os.Stdin)
 	for finished := false; !finished; {
 		input, err := stdin.ReadString('\n')
@@ -47,6 +50,15 @@ func main() {
 		input = strings.Trim(input, "\n\t\r ")
 
 		switch {
+		case input == "ls":
+			entries, err := os.ReadDir("./")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			for _, e := range entries {
+				fmt.Println(e.Name())
+			}
 		case input == "quit":
 			finished = true
 		case strings.HasPrefix(input, "compile "):

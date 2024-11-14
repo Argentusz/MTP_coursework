@@ -1,3 +1,5 @@
+import * as child_process from "child_process";
+
 const { app, BrowserWindow } = require('electron');
 const path = require('node:path');
 
@@ -13,8 +15,6 @@ const createWindow = () => {
   const win = new BrowserWindow({
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: true,
-      contextIsolation: false,
     },
   });
 
@@ -35,7 +35,7 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
-  createWindow();
+  createWindow()
 
   // On OS X it's common to re-create a window in the app when the
   // dock icon is clicked and there are no other windows open.
@@ -57,10 +57,49 @@ app.on('window-all-closed', () => {
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
+import { spawn } from "node:child_process";
+class MtpBridge {
+  constructor() {
+    this._process = spawn("mtp/mtp_darwin", ["-intr", "-trace" ,"-sudo", "-marshall=JSON", "-base=./mtp/projects"])
+    this._renderer = null
+
+    this._process.stdout.on("data", (data) => {
+      if (!this._renderer) {
+        return
+      }
+
+      this._renderer.send("update", `${data}`)
+    })
+
+    this._process.stderr.on("data", (data) => {
+      if (!this._renderer) {
+        return
+      }
+
+      this._renderer.send("error", `${data}`)
+    })
+  }
+
+  connectRenderer(renderer) {
+    this._renderer = renderer
+  }
+
+  send(command) {
+    if (!command.endsWith("\n")) {
+      command += "\n"
+    }
+
+    this._process.stdin.write(command)
+  }
+}
+
+const bridge = new MtpBridge()
+
 const { ipcMain } = require("electron")
-ipcMain.on("request", (e, a) => {
-  console.log("ipcMain got request", a)
-  e.sender.send("response", JSON.stringify({a, b: 2}))
+ipcMain.on("connect", (e, a) => {
+  bridge.connectRenderer(e.sender)
 })
 
-console.log("MAIN.JS")
+ipcMain.on("request", (e, a) => {
+  bridge.send(a)
+})
