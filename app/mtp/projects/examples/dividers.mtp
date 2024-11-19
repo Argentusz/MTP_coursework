@@ -29,7 +29,6 @@
         sub rx2 rx3
         $repeat
 
-    #mov32 rx1 $m32
-    mov [rw0] rx1
+    add rb0 1
 
     hlt

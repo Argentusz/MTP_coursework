@@ -60,7 +60,7 @@ app.on('window-all-closed', () => {
 import { spawn } from "node:child_process";
 class MtpBridge {
   constructor() {
-    this._process = spawn("mtp/mtp_darwin", ["-intr", "-trace" ,"-sudo", "-marshall=JSON", "-base=./mtp/projects"])
+    this._process = spawn("mtp/mtp_darwin", ["-intr", "-trace" ,"-sudo", "-marshall=JSON", "-base="])
     this._renderer = null
 
     this._process.stdout.on("data", (data) => {
@@ -95,11 +95,35 @@ class MtpBridge {
 
 const bridge = new MtpBridge()
 
-const { ipcMain } = require("electron")
+const { ipcMain, dialog } = require("electron")
+const fs = require("fs")
+
 ipcMain.on("connect", (e, a) => {
   bridge.connectRenderer(e.sender)
 })
 
 ipcMain.on("request", (e, a) => {
   bridge.send(a)
+})
+
+ipcMain.on("f-open", (e, a) => {
+  dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })
+      .then(r => {
+        if (r.canceled || r.filePaths.length === 0) return
+
+        const filePath = r.filePaths[0]
+        fs.readFile(filePath, "utf-8", (err, data) => {
+          if (err) return
+
+          e.sender.send("f-opened", { filePath, data })
+        })
+      })
+})
+
+ipcMain.on("f-save", (e, a) => {
+  fs.writeFile(a.filePath, a.data, err => {
+    if (err) return
+
+    e.sender.send("f-saved")
+  })
 })
