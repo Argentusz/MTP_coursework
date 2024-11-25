@@ -21,7 +21,7 @@
           </select>
         </div>
       </div>
-      <div>
+      <div style="margin-bottom: 7px;">
         <label>Address:</label>
         <input :value="fromRenderer" class="memory-table__input" @input="onFromInput"/>
       </div>
@@ -149,6 +149,7 @@ const onFromInput = (e) => {
   display: flex;
   flex-direction: row;
   gap: 10px;
+  margin-bottom: 7px;
 }
 
 .memory-table__select,

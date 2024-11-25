@@ -139,6 +139,30 @@ func (cpu *CPU) DeclareILabel(ilabel types.Address, exeAddr types.Word32) error 
 	return cpu.XMEM.At(consts.INT_SEG).SetWord32(ilabel*4, exeAddr)
 }
 
+func (cpu *CPU) SetRegister(id types.Word32, value types.Value) {
+	if !cpu.RRAM.PutValue(id, value) {
+		cpu.SIGSEGV()
+	}
+}
+
+func (cpu *CPU) SetMemory8(sid types.SegmentID, addr types.Address, value types.Word8) {
+	if cpu.XMEM.At(sid).SetByte(addr, value) != nil {
+		cpu.SIGSEGV()
+	}
+}
+
+func (cpu *CPU) SetMemory16(sid types.SegmentID, addr types.Address, value types.Word16) {
+	if cpu.XMEM.At(sid).SetWord16(addr, value) != nil {
+		cpu.SIGSEGV()
+	}
+}
+
+func (cpu *CPU) SetMemory32(sid types.SegmentID, addr types.Address, value types.Word32) {
+	if cpu.XMEM.At(sid).SetWord32(addr, value) != nil {
+		cpu.SIGSEGV()
+	}
+}
+
 func (cpu *CPU) Tick() bool {
 	*cpu.RRAM.SYS.IR = *cpu.RRAM.SYS.NIR
 	*cpu.RRAM.SYS.NIR += 4
@@ -154,7 +178,6 @@ func (cpu *CPU) Tick() bool {
 		return halted
 	}
 
-	//fmt.Println("Tick trying to SIGTRACE", )
 	if cpu.RRAM.SYS.FLG.FT() && !halted && !cpu.OUTP.INTA {
 		cpu.SIGTRACE()
 		cpu.InterruptCheck()

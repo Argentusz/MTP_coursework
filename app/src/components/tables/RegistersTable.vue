@@ -70,6 +70,10 @@ const formatByBase = (str) => {
   padding: 10px;
 }
 
+.registers-table__selectors {
+  margin-bottom: 7px;
+}
+
 .register-table__select {
   background: none;
   margin-left: 15px;

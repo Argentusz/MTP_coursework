@@ -1,7 +1,7 @@
 ; Программа для нахождения всех делителей числа
 #start $main
     ; Константы ;
-    $define $input 18 ; Исходное число
+    $define $input 0xfff ; Исходное число
     ; Лэйблы ;
     $define $write 1
     $define $for 3
@@ -28,7 +28,5 @@
         mov rx3 rx1
         sub rx2 rx3
         $repeat
-
-    add rb0 1
 
     hlt

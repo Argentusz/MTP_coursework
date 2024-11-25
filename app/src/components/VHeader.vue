@@ -2,8 +2,10 @@
   <div class="header__container">
     <div class="header__front">
       <img src="../../assets/img/mtp_logo.png" height="50">
-      <button @click="$emit('save')">Save</button>
-      <button @click="$emit('open')">Open</button>
+      <v-button disabled theme="glass" size="lg" @click="$emit('new')">New</v-button>
+      <v-button theme="glass" size="lg" @click="$emit('open')">Open</v-button>
+      <v-button theme="glass" size="lg" :disabled="!filePath" @click="$emit('save')">Save</v-button>
+      {{ fileName }}
     </div>
     <div class="header__glass"></div>
     <div class="header__gradient">
@@ -14,7 +16,24 @@
 </template>
 
 <script setup>
-const $emit = defineEmits(["open", "save"])
+import VButton from "./buttons/VButton.vue";
+import { computed } from "vue";
+
+const $emit = defineEmits(["open", "save", "new"])
+
+const $props = defineProps({
+  filePath: {
+    type: [String, null],
+    default: false,
+  }
+})
+
+const fileName = computed(() => {
+  if (!$props.filePath) return ""
+  const split = $props.filePath.split("/")
+  if (!split || split.length === 0) return ""
+  return split[split.length - 1]
+})
 </script>
 
 <style scoped>

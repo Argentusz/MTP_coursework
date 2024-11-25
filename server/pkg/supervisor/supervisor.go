@@ -139,6 +139,24 @@ func (s *Supervisor) Terminate() error {
 	return nil
 }
 
+func (s *Supervisor) SetRegister(id types.Word32, value types.Value) error {
+	if s.running {
+		return errors.New("can not set while running")
+	}
+
+	s.cpu.SetRegister(id, value)
+	return nil
+}
+
+func (s *Supervisor) SetMemory8(sid types.SegmentID, addr types.Address, value types.Word8) error {
+	if s.running {
+		return errors.New("can not set while running")
+	}
+
+	s.cpu.SetMemory8(sid, addr, value)
+	return nil
+}
+
 func (s *Supervisor) TraceOn() {
 	s.flags.trace = true
 	s.setFlags()

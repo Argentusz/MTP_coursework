@@ -60,36 +60,31 @@ app.on('window-all-closed', () => {
 import { spawn } from "node:child_process";
 class MtpBridge {
   constructor() {
-    this._process = spawn("mtp/mtp_darwin", ["-intr", "-trace" ,"-sudo", "-marshall=JSON", "-base="])
     this._renderer = null
-
-    this._process.stdout.on("data", (data) => {
-      if (!this._renderer) {
-        return
-      }
-
-      this._renderer.send("update", `${data}`)
-    })
-
-    this._process.stderr.on("data", (data) => {
-      if (!this._renderer) {
-        return
-      }
-
-      this._renderer.send("error", `${data}`)
-    })
+    this._server = null
+    this._stdoutbuff = null
   }
-
   connectRenderer(renderer) {
     this._renderer = renderer
   }
-
+  connectServer(path, flags) {
+    this._server = spawn(path, [...flags, "-marshall=JSON", "-base="])
+    this._server.stderr.on("data", data => this._renderer?.send("error", `${data}`))
+    this._server.stdout.on("data", data => {
+      this._stdoutbuff = `${data}`
+      this._renderer?.send("update", this._stdoutbuff)
+    })
+  }
+  disconnectServer() {
+    this._server?.kill()
+    this._stdoutbuff = null
+    this._renderer?.send("update", null)
+  }
   send(command) {
-    if (!command.endsWith("\n")) {
-      command += "\n"
-    }
-
-    this._process.stdin.write(command)
+    this._server?.stdin.write(command)
+  }
+  ping() {
+    this._renderer?.send("update", this._stdoutbuff)
   }
 }
 
@@ -98,32 +93,34 @@ const bridge = new MtpBridge()
 const { ipcMain, dialog } = require("electron")
 const fs = require("fs")
 
+ipcMain.on("greet", (e, a) => bridge.connectRenderer(e.sender))
 ipcMain.on("connect", (e, a) => {
-  bridge.connectRenderer(e.sender)
+  dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] }).then(r => {
+    if (r.canceled || r.filePaths.length === 0) return
+    bridge.connectServer(r.filePaths[0], a)
+  })
 })
-
+ipcMain.on("disconnect", (e, a) => bridge.disconnectServer())
 ipcMain.on("request", (e, a) => {
+  if (!a.endsWith("\n")) a += "\n"
   bridge.send(a)
 })
+ipcMain.on("ping", (e, a) => bridge.ping())
 
 ipcMain.on("f-open", (e, a) => {
   dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })
       .then(r => {
         if (r.canceled || r.filePaths.length === 0) return
-
         const filePath = r.filePaths[0]
         fs.readFile(filePath, "utf-8", (err, data) => {
-          if (err) return
-
+          if (err) e.sender.send("error", err)
           e.sender.send("f-opened", { filePath, data })
         })
       })
 })
-
 ipcMain.on("f-save", (e, a) => {
   fs.writeFile(a.filePath, a.data, err => {
-    if (err) return
-
-    e.sender.send("f-saved")
+    if (!err) e.sender.send("f-saved")
+    e.returnValue = !err
   })
 })
