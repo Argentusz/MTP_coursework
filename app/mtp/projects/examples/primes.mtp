@@ -1,0 +1,79 @@
+; Программа для нахождения первых N простых чисел
+#start $main
+    ; Константы ;
+    $define $n 1000
+    ; Лэйблы ;
+    $define $check_rw1 1
+    $define $write_rw1 2
+    $define $for_m 3
+    $define $for_c 4
+    $define $suc_c 5
+    $define $fal_c 6
+    $define $exit 65535
+
+
+; Проверяет, является ли число простым
+; @param rw1 - Проверяемое число
+; @returns rb0 - 1 = Число простое, 0 = Число составное
+; @uses rw2
+; @uses rw30
+; @uses rw31
+@label $check_rw1
+    mov rw2 2 ; Делитель
+
+    lbl $for_c
+        ; Если rw1 == rw2, значит rw1 - простое
+        mov rw31 rw1
+        sub rw31 rw2
+        jiz rw31 $suc_c
+
+        ; Если rw1 % rw2 == 0, значит rw1 - составное
+        mov rw30 rw1
+        rmd rw30 rw2
+        jiz rw30 $fal_c
+
+        ; Продолжаем перебирать делители
+        add rw2 1
+        jmp $for_c
+
+    ; rw1 - простое
+    @label $suc_c
+        mov rb0 1
+        ret
+
+    ; rw1 - составное
+    @label $fal_c
+        mov rb0 0
+        ret
+
+
+; Записывает число из регистра rw1 в следующую ячейку памяти
+; @param rw1 - Число
+; @uses rx0
+@label $write_rw1
+    mov [rx0] rw1
+    add rx0 4
+    ret
+
+
+@label $main
+    mov rw0 $n ; Количество
+    mov rw1 1  ; Проверяемое число
+    mov rx0 0  ; Адрес для записи
+
+    lbl $for_m
+        ; Если найденное количество простых 
+        ; (rx0 / 4) равно входному (rw0), выходим
+        mov rw30 rw0
+        mul rw30 4
+        sub rw30 rx0
+        jiz rw30 $exit
+
+        add rw1 1
+        call $check_rw1
+        jiz rb0 $for_m
+        call $write_rw1
+        jmp $for_m
+
+    @label $exit
+        hlt

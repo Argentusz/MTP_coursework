@@ -1,0 +1,5 @@
+#start $main
+
+@label $main
+    add rb0 1
+    jmp $main

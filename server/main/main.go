@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/Argentusz/MTP_coursework/pkg/supervisor"
+	"github.com/Argentusz/MTP_coursework/pkg/types"
 	"os"
 	"strings"
 )
@@ -28,15 +30,11 @@ func main() {
 	}
 
 	visor := supervisor.InitSupervisor(*base, *intr, *trace, *sudo, marshallMode)
+	onChange(&visor)
+	mainLoop(&visor)
+}
 
-	onChange := func() {
-		str, err := visor.Marshall()
-		if err != nil {
-			os.Stderr.WriteString(err.Error())
-		}
-		fmt.Println(str)
-	}
-
+func mainLoop(visor *supervisor.Supervisor) {
 	stdin := bufio.NewReader(os.Stdin)
 	for finished := false; !finished; {
 		input, err := stdin.ReadString('\n')
@@ -44,213 +42,142 @@ func main() {
 			os.Stderr.WriteString(err.Error())
 			continue
 		}
+
 		input = strings.Trim(input, "\n\t\r ")
+		finished = do(input, visor)
+	}
+}
 
-		switch {
-		case input == "quit":
-			finished = true
-		case strings.HasPrefix(input, "compile "):
-			fileName := strings.TrimPrefix(input, "compile ")
-			err := visor.Compile(fileName)
-			onChange()
-			if err != nil {
-				os.Stderr.WriteString(fmt.Sprintln("[Error: Compilation]", err.Error()))
-			}
+func onChange(visor *supervisor.Supervisor) {
+	str, err := visor.Marshall()
+	if err != nil {
+		os.Stderr.WriteString(err.Error())
+	}
+	fmt.Println(str + "\x00")
+}
 
-		case input == "run" || input == "":
-			go func() {
-				err := visor.Run()
-				onChange()
-				if err != nil {
-					os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", err.Error()))
-				}
-			}()
-		case input == "run all":
-			go func() {
-				err := visor.RunAll()
-				onChange()
-				if err != nil {
-					os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", err.Error()))
-				}
-			}()
-		case input == "reset":
-			visor.Reset()
-			onChange()
-		case input == "term":
-			err := visor.Terminate()
-			onChange()
+func do(input string, visor *supervisor.Supervisor) bool {
+	switch {
+
+	case input == "quit":
+		return true
+
+	case strings.HasPrefix(input, "compile "):
+		fileName := strings.TrimPrefix(input, "compile ")
+		err := visor.Compile(fileName)
+		onChange(visor)
+		if err != nil {
+			os.Stderr.WriteString(fmt.Sprintln("[Error: Compilation]", err.Error()))
+		}
+
+	case input == "run" || input == "":
+		go func() {
+			err := visor.Run()
+			onChange(visor)
 			if err != nil {
 				os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", err.Error()))
 			}
-		case strings.HasPrefix(input, "trace "):
-			onOff := strings.TrimPrefix(input, "trace ")
-			switch onOff {
-			case "on":
-				visor.TraceOn()
-				onChange()
-			case "false":
-				visor.TraceOff()
-				onChange()
-			default:
-				onChange()
-				os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor] trace can be only on or off"))
-			}
+		}()
 
-		case strings.HasPrefix(input, "sudo "):
-			onOff := strings.TrimPrefix(input, "sudo ")
-			switch onOff {
-			case "on":
-				visor.SudoOn()
-				onChange()
-			case "false":
-				visor.SudoOff()
-				onChange()
-			default:
-				onChange()
-				os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor] sudo can be only on or off"))
+	case input == "run all":
+		go func() {
+			err := visor.RunAll()
+			onChange(visor)
+			if err != nil {
+				os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", err.Error()))
 			}
+		}()
 
-		case strings.HasPrefix(input, "intr "):
-			onOff := strings.TrimPrefix(input, "intr ")
-			switch onOff {
-			case "on":
-				visor.IntrOn()
-				onChange()
-			case "false":
-				visor.IntrOff()
-				onChange()
-			default:
-				onChange()
-				os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor] intr can be only on or off"))
-			}
+	case input == "reset":
+		visor.Reset()
+		onChange(visor)
 
-		default:
-			os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor] Command \"%s\" not found\n", input))
+	case input == "term":
+		err := visor.Terminate()
+		onChange(visor)
+		if err != nil {
+			os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", err.Error()))
 		}
+
+	case strings.HasPrefix(input, "set "):
+		split := strings.SplitN(input, " ", 2)
+		if len(split) != 2 {
+			os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", "set expected JSON"))
+			break
+		}
+		jsonStr := split[1]
+		updates := struct {
+			RRAM map[types.Word32]types.Value
+			XMEM map[types.SegmentID]map[types.Address]types.Word8
+		}{}
+		err := json.Unmarshal([]byte(jsonStr), &updates)
+		if err != nil {
+			os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", err.Error()))
+			break
+		}
+		for rid, val := range updates.RRAM {
+			err := visor.SetRegister(rid, val)
+			if err != nil {
+				os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", err.Error()))
+				return false
+			}
+		}
+		for sid, m := range updates.XMEM {
+			for addr, val := range m {
+				err := visor.SetMemory8(sid, addr, val)
+				if err != nil {
+					os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor]", err.Error()))
+					return false
+				}
+			}
+		}
+		onChange(visor)
+
+	case strings.HasPrefix(input, "trace "):
+		onOff := strings.TrimPrefix(input, "trace ")
+		switch onOff {
+		case "on":
+			visor.TraceOn()
+			onChange(visor)
+		case "off":
+			visor.TraceOff()
+			onChange(visor)
+		default:
+			onChange(visor)
+			os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor] trace can be only on or off"))
+		}
+
+	case strings.HasPrefix(input, "sudo "):
+		onOff := strings.TrimPrefix(input, "sudo ")
+		switch onOff {
+		case "on":
+			visor.SudoOn()
+			onChange(visor)
+		case "off":
+			visor.SudoOff()
+			onChange(visor)
+		default:
+			onChange(visor)
+			os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor] sudo can be only on or off"))
+		}
+
+	case strings.HasPrefix(input, "intr "):
+		onOff := strings.TrimPrefix(input, "intr ")
+		switch onOff {
+		case "on":
+			visor.IntrOn()
+			onChange(visor)
+		case "off":
+			visor.IntrOff()
+			onChange(visor)
+		default:
+			onChange(visor)
+			os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor] intr can be only on or off"))
+		}
+
+	default:
+		onChange(visor)
+		os.Stderr.WriteString(fmt.Sprintln("[Error: Supervisor] Command \"%s\" not found\n", input))
 	}
-
+	return false
 }
-
-//func main() {
-//	const StepByStep = false
-//	mtp := cpu.InitCPU()
-//
-//	fileContent, err := os.ReadFile("../projects/examples/primes.mtp")
-//	if err != nil {
-//		panic(err.Error())
-//	}
-//
-//	compiled, err := compiler.Compile(strings.Split(string(fileContent), "\n"))
-//
-//	if err != nil {
-//		panic(err.Error())
-//	}
-//
-//	program := compiled.Output
-//	labels := compiled.Labels
-//	ilabels := compiled.ILabels
-//
-//	marshallExeSeg := func() {
-//		for i, v := range compiled.Input {
-//			if int(*mtp.RRAM.SYS.NIB) == i*4 {
-//				fmt.Print("[*] ")
-//			} else {
-//				fmt.Print("    ")
-//			}
-//
-//			f1 := false
-//			for label, addr := range compiled.Labels {
-//				if int(addr) == i*4 {
-//					fmt.Printf("<0x%04x>: ", label)
-//					f1 = true
-//					break
-//				}
-//			}
-//
-//			f2 := false
-//			for ilabel, addr := range compiled.ILabels {
-//				if int(addr) == i*4 {
-//					fmt.Printf("{0x%04x}: ", ilabel)
-//					f2 = true
-//					break
-//				}
-//			}
-//
-//			if !f1 && !f2 {
-//				fmt.Print("          ")
-//			}
-//
-//			fmt.Println(v)
-//		}
-//	}
-//
-//	for i, line := range program {
-//		err = mtp.XMEM.At(consts.EXE_SEG).SetWord32(types.Address(i*4), line)
-//		if err != nil {
-//			panic(err.Error())
-//		}
-//	}
-//
-//	for label, addr := range labels {
-//		err = mtp.DeclareLabel(types.Address(label), addr)
-//		if err != nil {
-//			panic(err.Error())
-//		}
-//	}
-//
-//	for ilabel, addr := range ilabels {
-//		err = mtp.DeclareILabel(types.Address(ilabel), addr)
-//		if err != nil {
-//			panic(err.Error())
-//		}
-//	}
-//
-//	if StepByStep {
-//		mtp.RRAM.SYS.FLG.FTOn()
-//	}
-//
-//	mtp.MarshallHuman()
-//	marshallExeSeg()
-//
-//	var str string
-//	fmt.Scanln(&str)
-//
-//	for finish := str == "q"; !finish; {
-//		halted := mtp.Tick()
-//		if !halted {
-//			continue
-//		}
-//
-//		finish = true
-//		mtp.MarshallHuman()
-//		marshallExeSeg()
-//		if mtp.OUTP.INTA && mtp.OUTP.INTN == consts.SIGTRACE {
-//			//time.Sleep(250 * time.Millisecond)
-//			//finish = false
-//			fmt.Scanln(&str)
-//			finish = str == "q"
-//		}
-//	}
-//
-//	switch mtp.OUTP.INTN {
-//	case consts.SIGNONE:
-//		fmt.Println("Program finished successfully")
-//	case consts.SIGFPE:
-//		fmt.Println("Program interrupted: SIGFPE")
-//	case consts.SIGTRACE:
-//		fmt.Println("Program interrupted: SIGTRACE")
-//	case consts.SIGSEGV:
-//		fmt.Println("Program interrupted: SIGSEGV")
-//	case consts.SIGTERM:
-//		fmt.Println("Program interrupted: SIGTERM")
-//	case consts.SIGINT:
-//		fmt.Println("Program interrupted: SIGINT")
-//	case consts.SIGIIE:
-//		fmt.Println("Program interrupted: SIGIIE")
-//	case consts.SIGILL:
-//		fmt.Println("Program interrupted: SIGILL")
-//	default:
-//		fmt.Println("Program interrupted with error code", mtp.OUTP.INTN)
-//	}
-//
-//}
