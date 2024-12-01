@@ -53,7 +53,7 @@ func onChange(visor *supervisor.Supervisor) {
 	if err != nil {
 		os.Stderr.WriteString(err.Error())
 	}
-	fmt.Println(str)
+	fmt.Println(str + "\x00")
 }
 
 func do(input string, visor *supervisor.Supervisor) bool {
@@ -131,6 +131,7 @@ func do(input string, visor *supervisor.Supervisor) bool {
 				}
 			}
 		}
+		onChange(visor)
 
 	case strings.HasPrefix(input, "trace "):
 		onOff := strings.TrimPrefix(input, "trace ")
@@ -138,7 +139,7 @@ func do(input string, visor *supervisor.Supervisor) bool {
 		case "on":
 			visor.TraceOn()
 			onChange(visor)
-		case "false":
+		case "off":
 			visor.TraceOff()
 			onChange(visor)
 		default:
@@ -152,7 +153,7 @@ func do(input string, visor *supervisor.Supervisor) bool {
 		case "on":
 			visor.SudoOn()
 			onChange(visor)
-		case "false":
+		case "off":
 			visor.SudoOff()
 			onChange(visor)
 		default:
@@ -166,7 +167,7 @@ func do(input string, visor *supervisor.Supervisor) bool {
 		case "on":
 			visor.IntrOn()
 			onChange(visor)
-		case "false":
+		case "off":
 			visor.IntrOff()
 			onChange(visor)
 		default:

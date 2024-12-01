@@ -9,7 +9,8 @@
       {{ workingState.text }}
     </div>
     <div class="status-bar__side">
-      <v-button theme="glass" @click="$log">Log</v-button>
+      <v-button theme="green" :disabled="running || !connected" @click="$emit('send')">Send</v-button>
+      <v-button theme="red" :disabled="running || !connected" @click="$emit('drop')">Drop</v-button>
       <v-led color="gray" size="xs"/>
       <switch-button :disabled="running || !connected" :on="intr" @click="request(`intr ${intr ? 'off' : 'on'}`)">Interrupts</switch-button>
       <switch-button :disabled="running || !connected" :on="trace" @click="request(`trace ${trace ? 'off' : 'on'}`)">Trace</switch-button>
@@ -49,7 +50,7 @@ const $props = defineProps({
   },
 })
 
-const $emit = defineEmits(["request", "compile", "connect", "disconnect", "run"])
+const $emit = defineEmits(["request", "compile", "connect", "disconnect", "run", "send", "drop"])
 
 const request = (cmd) => $emit("request", cmd)
 const compile = () => $emit("compile")

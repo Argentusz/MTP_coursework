@@ -2,10 +2,10 @@
   <div class="header__container">
     <div class="header__front">
       <img src="../../assets/img/mtp_logo.png" height="50">
-      <v-button disabled theme="glass" size="lg" @click="$emit('new')">New</v-button>
+      <v-button theme="glass" size="lg" @click="$emit('new')">New</v-button>
       <v-button theme="glass" size="lg" @click="$emit('open')">Open</v-button>
-      <v-button theme="glass" size="lg" :disabled="!filePath" @click="$emit('save')">Save</v-button>
-      {{ fileName }}
+      <v-button theme="glass" size="lg" @click="$emit('save')">Save</v-button>
+      {{ fileName || "Untitled" }}
     </div>
     <div class="header__glass"></div>
     <div class="header__gradient">

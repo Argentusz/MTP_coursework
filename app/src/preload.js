@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("mtpAPI", {
 })
 
 contextBridge.exposeInMainWorld("fileAPI", {
+    new: () => ipcRenderer.send("f-new"),
     open: () => ipcRenderer.send("f-open"),
     save: (filePath, data) => ipcRenderer.sendSync("f-save", { filePath, data }),
 

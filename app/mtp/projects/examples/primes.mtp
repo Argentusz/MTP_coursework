@@ -1,7 +1,7 @@
 ; Программа для нахождения первых N простых чисел
 #start $main
     ; Константы ;
-    $define $n 10
+    $define $n 1000
     ; Лэйблы ;
     $define $check_rw1 1
     $define $write_rw1 2

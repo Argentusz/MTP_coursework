@@ -6,7 +6,6 @@
 <script setup>
 import { onMounted, watch } from "vue";
 import { editor, languages } from "monaco-editor";
-import "../js/mtpLang";
 
 const program = defineModel({ type: [String, null], default: null })
 const $props = defineProps({ filePath: { type: [String, null], default: null } })

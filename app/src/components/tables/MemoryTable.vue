@@ -33,6 +33,7 @@
         :chars="chars"
         editable
         style="height: 100%"
+        @edit="onEdit"
       />
     </div>
   </div>
@@ -44,10 +45,16 @@ import VTable from "./VTable.vue";
 
 const ROWS_ON_PAGE = 30
 
+const $emit = defineEmits(["edit"])
+
 const $props = defineProps({
   table: {
     type: Object,
     default: () => {}
+  },
+  toSet: {
+    type: Object,
+    default: () => ({ XMEM: {} })
   }
 })
 
@@ -100,7 +107,7 @@ const genCell = (addr) => {
 
   const cells = []
   for (let i = 0; i < Math.floor(group.value / 8); i++)
-    cells.push($props.table[addr+i] || 0)
+    cells.push($props.toSet[addr+i] || $props.table[addr+i] || 0)
 
   const str = cells.reduce((acc, cell) => {
     let cellStr = cell.toString(2)
@@ -132,6 +139,21 @@ const fromRenderer = computed(() => {
 
 const onFromInput = (e) => {
   from.value = parseInt(e.target.value.slice(2) || "0", 16)
+}
+
+const onEdit = (i, j, v) => {
+  const baseAddr = parseInt(rows.value[i].addr.replace("0x", ""), 16)
+
+  v = v.replace(/0x|0o/, "")
+  v = `${"0".repeat(group.value - v.length)}${v}`
+  const values = []
+  for (let sub = 0; sub < group.value; sub+=8) {
+    values.push(parseInt(v.substring(sub, sub + 8), base.value))
+  }
+
+  values.forEach((value, indent) => {
+    $emit("edit", baseAddr + indent + j - 1, value)
+  })
 }
 </script>
 

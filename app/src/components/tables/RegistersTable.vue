@@ -20,6 +20,7 @@
           :chars="size"
           editable
           style="height: 100%"
+          @edit="onEdit"
       />
     </div>
   </div>
@@ -33,6 +34,7 @@ const base = ref(2)
 
 const columns = ['name', 'value']
 
+const $emit = defineEmits(["edit"])
 const $props = defineProps({
   registers: {
     type: Array,
@@ -62,6 +64,11 @@ const formatByBase = (str) => {
     case 16: return `0x${str}`
     default: return str
   }
+}
+
+const onEdit = (i, j, v) => {
+  const val = parseInt(v.replace(/0o|0x/, ""), base.value)
+  $emit("edit", i, val)
 }
 </script>
 

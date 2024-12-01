@@ -6,6 +6,7 @@ import (
 	"github.com/Argentusz/MTP_coursework/pkg/compiler"
 	"github.com/Argentusz/MTP_coursework/pkg/consts"
 	"github.com/Argentusz/MTP_coursework/pkg/cpu"
+	"github.com/Argentusz/MTP_coursework/pkg/register"
 	"github.com/Argentusz/MTP_coursework/pkg/types"
 	"os"
 	"strings"
@@ -188,24 +189,32 @@ func (s *Supervisor) IntrOff() {
 }
 
 func (s *Supervisor) setFlags() {
+	var flagsRegister *register.FlagsRegister
+	switch s.cpu.RRAM.SYS.FLB == 0 {
+	case true:
+		flagsRegister = &s.cpu.RRAM.SYS.FLG
+	case false:
+		flagsRegister = &s.cpu.RRAM.SYS.FLB
+	}
+
 	switch s.flags.trace {
 	case true:
-		s.cpu.RRAM.SYS.FLG.FTOn()
+		flagsRegister.FTOn()
 	case false:
-		s.cpu.RRAM.SYS.FLG.FTOff()
+		flagsRegister.FTOff()
 	}
 
 	switch s.flags.sudo {
 	case true:
-		s.cpu.RRAM.SYS.FLG.FUOn()
+		flagsRegister.FUOn()
 	case false:
-		s.cpu.RRAM.SYS.FLG.FUOff()
+		flagsRegister.FUOff()
 	}
 
 	switch s.flags.intr {
 	case true:
-		s.cpu.RRAM.SYS.FLG.FIOn()
+		flagsRegister.FIOn()
 	case false:
-		s.cpu.RRAM.SYS.FLG.FIOff()
+		flagsRegister.FIOff()
 	}
 }

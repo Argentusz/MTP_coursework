@@ -10,6 +10,7 @@
     <div class="memory-viewer__table">
       <memory-table
         :table="xmem.Segments[segment].Table"
+        @edit="onEdit"
       />
     </div>
   </div>
@@ -22,12 +23,19 @@ import MemoryTable from "./tables/MemoryTable.vue";
 
 const segment = ref(2)
 
+const toEdit = defineModel({ type: Object, default: () => ({ XMEM: {} }) })
+
 const $props = defineProps({
   xmem: {
     type: [Object, null],
     default: null
   }
 })
+
+const onEdit = (addr, v) => {
+  if (toEdit.value.XMEM[segment.value] === undefined) toEdit.value.XMEM[segment.value] = {}
+  toEdit.value.XMEM[segment.value][addr] = v
+}
 </script>
 
 <style scoped>

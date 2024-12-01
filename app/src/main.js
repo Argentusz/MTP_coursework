@@ -63,6 +63,9 @@ class MtpBridge {
     this._renderer = null
     this._server = null
     this._stdoutbuff = null
+    this._stdoutreading = false
+    this._filePathBuff = null
+    this._fileDataBuff = null
   }
   connectRenderer(renderer) {
     this._renderer = renderer
@@ -71,9 +74,23 @@ class MtpBridge {
     this._server = spawn(path, [...flags, "-marshall=JSON", "-base="])
     this._server.stderr.on("data", data => this._renderer?.send("error", `${data}`))
     this._server.stdout.on("data", data => {
-      this._stdoutbuff = `${data}`
-      this._renderer?.send("update", this._stdoutbuff)
+      const output = `${data}`
+
+      this._stdoutreading
+        ? this._stdoutbuff += output
+        : this._stdoutbuff = output
+
+      this._stdoutreading = !output.endsWith("\x00\n")
+
+      if (!this._stdoutreading) {
+        this._stdoutbuff = this._stdoutbuff.substring(0, this._stdoutbuff.length - 2)
+        this._renderer?.send("update", this._stdoutbuff)
+      }
     })
+  }
+  setFileBuffer(filePath, data) {
+    this._filePathBuff = filePath
+    this._fileDataBuff = data
   }
   disconnectServer() {
     this._server?.kill()
@@ -85,6 +102,9 @@ class MtpBridge {
   }
   ping() {
     this._renderer?.send("update", this._stdoutbuff)
+    if (this._filePathBuff) {
+      this._renderer?.send("f-opened", { filePath: this._filePathBuff, data: this._fileDataBuff })
+    }
   }
 }
 
@@ -108,19 +128,65 @@ ipcMain.on("request", (e, a) => {
 ipcMain.on("ping", (e, a) => bridge.ping())
 
 ipcMain.on("f-open", (e, a) => {
-  dialog.showOpenDialog({ properties: ['openFile', 'multiSelections'] })
+  dialog.showOpenDialog({ properties: ['openFile'] })
       .then(r => {
         if (r.canceled || r.filePaths.length === 0) return
         const filePath = r.filePaths[0]
-        fs.readFile(filePath, "utf-8", (err, data) => {
-          if (err) e.sender.send("error", err)
-          e.sender.send("f-opened", { filePath, data })
-        })
+        openFile(e, filePath)
       })
 })
 ipcMain.on("f-save", (e, a) => {
-  fs.writeFile(a.filePath, a.data, err => {
+  if (a.filePath) {
+    writeFile(e, a)
+    return
+  }
+
+  newFile(e, a).then(filePath => {
+    if (!filePath) {
+      return
+    }
+
+    writeFile(e, { filePath, data: a.data }, (err => {
+      if (err) {
+        e.returnValue = false
+        return
+      }
+
+      openFile(e, filePath)
+      e.sender.send("f-saved")
+      e.returnValue = true
+    }))
+  })
+})
+ipcMain.on("f-new", (e, a) => {
+  newFile(e, a).then(filePath => {
+    if (filePath) {
+      openFile(e, filePath)
+    }
+  })
+})
+
+const newFile = (e, a) => {
+  return dialog.showSaveDialog({}).then(file => {
+    if (file.canceled) return null
+    fs.open(file.filePath, "w", () => {})
+    return file.filePath
+  })
+}
+
+const writeFile = (e, a, callback = null) => {
+  callback = callback || (err => {
     if (!err) e.sender.send("f-saved")
     e.returnValue = !err
   })
-})
+  bridge.setFileBuffer(a.filePath, a.data)
+  fs.writeFile(a.filePath, a.data, callback)
+}
+
+const openFile = (e, filePath) => {
+  fs.readFile(filePath, "utf-8", (err, data) => {
+    if (err) e.sender.send("error", err)
+    bridge.setFileBuffer(filePath, data)
+    e.sender.send("f-opened", { filePath, data })
+  })
+}
